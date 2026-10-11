@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <title>Document</title>
+</head>
+<body>
+    <section id="landingTemplate">
+        <div class="relative">
+  <img src="backgroundjpg.jpg" class="absolute inset-0 object-cover w-full h-full" alt="" />
+  <div class="relative bg-green-700/40">
+    <svg class="absolute inset-x-0 bottom-0 text-white" viewBox="0 0 1160 163">
+      <path
+        fill="currentColor"
+        d="M-164 13L-104 39.7C-44 66 76 120 196 141C316 162 436 152 556 119.7C676 88 796 34 916 13C1036 -8 1156 2 1216 7.7L1276 13V162.5H1216C1156 162.5 1036 162.5 916 162.5C796 162.5 676 162.5 556 162.5C436 162.5 316 162.5 196 162.5C76 162.5 -44 162.5 -104 162.5H-164V13Z"
+      ></path>
+    </svg>
+    <div class="relative px-4 py-16 mx-auto overflow-hidden sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20">
+      <div class="flex flex-col items-center justify-between xl:flex-row">
+        <div class="w-full max-w-xl mb-12 xl:mb-0 xl:pr-16 xl:w-7/12">
+          <h2 class="max-w-lg mb-6 font-sans text-3xl font-bold tracking-tight text-white sm:text-4xl sm:leading-none">
+            Customize your trip itenrary to your intersts
+          </h2>
+          <p class="max-w-xl mb-4 text-base text-gray-200 md:text-lg">
+            Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudan, totam rem aperiam, eaque ipsa quae.
+          </p>
+        </div>
+        <div class="w-full max-w-xl xl:px-8 xl:w-6/12">
+          <div class="bg-white rounded shadow-2xl p-7 sm:p-10">
+            <h3 class="mb-4 text-xl font-semibold sm:text-center sm:mb-6 sm:text-2xl">
+              Sign up
+            </h3>
+            <form>
+              <div class="mb-1 sm:mb-2">
+                <label for="firstName" class="inline-block mb-1 font-medium">First name</label>
+                <input
+                  placeholder="John"
+                  required=""
+                  type="text"
+                  class="flex-grow w-full h-12 px-4 mb-2 transition duration-200 bg-white border border-gray-300 rounded shadow-sm appearance-none focus:border-deep-purple-accent-400 focus:outline-none focus:shadow-outline"
+                  id="firstName"
+                  name="firstName"
+                />
+              </div>
+              <div class="mb-1 sm:mb-2">
+                <label for="lastName" class="inline-block mb-1 font-medium">Last name</label>
+                <input
+                  placeholder="Doe"
+                  required=""
+                  type="text"
+                  class="flex-grow w-full h-12 px-4 mb-2 transition duration-200 bg-white border border-gray-300 rounded shadow-sm appearance-none focus:border-deep-purple-accent-400 focus:outline-none focus:shadow-outline"
+                  id="lastName"
+                  name="lastName"
+                />
+              </div>
+              <div class="mb-1 sm:mb-2">
+                <label for="email" class="inline-block mb-1 font-medium">E-mail</label>
+                <input
+                  placeholder="john.doe@example.org"
+                  required=""
+                  type="text"
+                  class="flex-grow w-full h-12 px-4 mb-2 transition duration-200 bg-white border border-gray-300 rounded shadow-sm appearance-none focus:border-deep-purple-accent-400 focus:outline-none focus:shadow-outline"
+                  id="email"
+                  name="email"
+                />
+              </div>
+
+              <div>
+                <label for="countries" class="block mb-1 font-medium">Pick a State</label>
+  <select id="countries" class="flex-grow w-full h-12 px-4 mb-2 transition duration-200 bg-white border border-gray-300 rounded shadow-sm placeholder:text-body">
+    <option selected>Any</option>
+    <option>Alabam</option>
+    <option>Alaska</option>
+    <option>Arizona</option>
+    <option>Arkansas</option>
+    <option>California</option>
+  </select>
+              </div>
+
+              <div>
+                <h3 class="mt-3 inline-block mb-1 font-medium">Choose your intrests:</h3>
+<ul class="select-none grid gap-4 grid-cols-4">
+    <li class="h-12">
+        <input type="checkbox" id="outdoor" value="" class="hidden peer" required="">
+        <label for="outdoor" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Outdoors
+        </label>
+    </li>
+    
+     <li class="h-12">
+        <input type="checkbox" id="fine" value="" class="hidden peer" required="">
+        <label for="fine" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Fine Dining
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="art" value="" class="hidden peer" required="">
+        <label for="art" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Arts
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="music" value="" class="hidden peer" required="">
+        <label for="music" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Music
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="park" value="" class="hidden peer" required="">
+        <label for="park" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Parks
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="museum" value="" class="hidden peer" required="">
+        <label for="museum" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Museums
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="sport" value="" class="hidden peer" required="">
+        <label for="sport" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Sports
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="fest" value="" class="hidden peer" required="">
+        <label for="fest" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Festivals
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="hiking" value="" class="hidden peer" required="">
+        <label for="hiking" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Hiking
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="historic" value="" class="hidden peer" required="">
+        <label for="historic" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Historic
+        </label>
+    </li>
+
+     <li class="h-12">
+        <input type="checkbox" id="shop" value="" class="hidden peer" required="">
+        <label for="shop" class="flex items-center justify-center w-full py-2 px-2 text-body bg-green-200 rounded-full cursor-pointer peer-hover:bg-green-400 peer-checked:bg-green-400 font-medium mb-1">                           
+            Shopping
+        </label>
+    </li>
+</ul>
+              </div>
+
+
+
+              <div class="mt-4 mb-2 sm:mb-4">
+                <button type="submit" class="inline-flex items-center justify-center w-full h-12 px-6 font-medium tracking-wide text-white transition duration-200 rounded shadow-md bg-green-500 hover:bg-green-700 focus:shadow-outline focus:outline-none cursor-pointer">
+                  Get Started
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    </section>
+    <div class="flex items-center justify-center w-screen p-10">
+    <!-- Component Start -->
+    <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-2 max-w-6xl">
+        <!-- Tile 1 -->
+        <div class="flex flex-col bg-gray-200 rounded-lg p-4 m-2">
+            <div class="h-40 bg-cover bg-[url('backgroundjpg.jpg')] rounded-lg">
+            </div>
+            <div class="flex flex-col items-start mt-4">
+                <h4 class="text-xl font-semibold">Tahoe Hiking</h4>
+                <p class="text-sm">Lorem ipsum dolor, sit amet consectetur adipisicing elit. At repudiandae necessitatibus ess</p>
+            </div>
+        </div>
+        <!-- Tile 2 -->
+        <div class="flex flex-col bg-gray-200 rounded-lg p-4 m-2">
+            <div class="h-40 bg-cover bg-[url('backgroundjpg.jpg')] rounded-lg">
+            </div>
+            <div class="flex flex-col items-start mt-4">
+                <h4 class="text-xl font-semibold">Tahoe Hiking</h4>
+                <p class="text-sm">Lorem ipsum dolor, sit amet consectetur adipisicing elit. At repudiandae necessitatibus ess</p>
+            </div>
+        </div>
+        <!-- Tile 3 -->
+        <div class="flex flex-col bg-gray-200 rounded-lg p-4 m-2">
+            <div class="h-40 bg-cover bg-[url('backgroundjpg.jpg')] rounded-lg">
+            </div>
+            <div class="flex flex-col items-start mt-4">
+                <h4 class="text-xl font-semibold">Tahoe Hiking</h4>
+                <p class="text-sm">Lorem ipsum dolor, sit amet consectetur adipisicing elit. At repudiandae necessitatibus ess</p>
+            </div>
+        </div>
+        <!-- Tile 4 -->
+        <div class="flex flex-col bg-gray-200 rounded-lg p-4 m-2">
+            <div class="h-40 bg-cover bg-[url('backgroundjpg.jpg')] rounded-lg">
+            </div>
+            <div class="flex flex-col items-start mt-4">
+                <h4 class="text-xl font-semibold">Tahoe Hiking</h4>
+                <p class="text-sm">Lorem ipsum dolor, sit amet consectetur adipisicing elit. At repudiandae necessitatibus ess</p>
+            </div>
+        </div>
+    </div>
+    <!-- Component End  -->
+</div>
+</body>
+</html>
