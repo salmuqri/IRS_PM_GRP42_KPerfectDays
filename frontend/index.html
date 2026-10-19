@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f1e8">
+  <title>K Perfect Days — California, your way</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="K Perfect Days home"><span class="brand-mark">K</span><span>K Perfect Days</span></a>
+    <nav id="main-nav" class="main-nav" aria-label="Main navigation" hidden>
+      <button class="nav-link" data-page="plan">Plan a trip</button>
+      <button class="nav-link" data-page="recommendations">Discover</button>
+      <button class="nav-link" data-page="saved">Saved trips</button>
+    </nav>
+    <div id="user-actions" class="user-actions" hidden>
+      <span id="user-greeting" class="user-greeting"></span>
+      <button id="logout-button" class="text-button">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="page-auth" class="page auth-page">
+      <div class="auth-copy">
+        <p class="eyebrow">A little more California</p>
+        <h1>Good trips start<br>with <em>your kind</em> of fun.</h1>
+        <p class="lede">Find places that fit your pace, your people, and the way you like to explore.</p>
+        <div class="coast-illustration" aria-hidden="true">
+          <div class="sun"></div><div class="coastline"></div><div class="wave wave-one"></div><div class="wave wave-two"></div>
+          <span class="coast-label">the Golden State</span>
+        </div>
+      </div>
+      <div class="auth-card card-surface">
+        <div id="invite-banner" class="invite-banner" hidden></div>
+        <div class="auth-tabs" role="tablist" aria-label="Account access">
+          <button class="auth-tab active" id="signup-tab" role="tab" aria-selected="true" type="button">Create account</button>
+          <button class="auth-tab" id="login-tab" role="tab" aria-selected="false" type="button">Log in</button>
+        </div>
+        <form id="signup-form" class="auth-form">
+          <h2>Make yourself at home.</h2>
+          <p class="muted">Your next California day is waiting.</p>
+          <label for="signup-name">Your name</label>
+          <input id="signup-name" name="name" autocomplete="name" placeholder="Alex Morgan" required>
+          <label for="signup-email">Email address</label>
+          <input id="signup-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <label for="signup-password">Password</label>
+          <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required>
+          <button class="button button-primary button-full" type="submit">Create my account <span aria-hidden="true">→</span></button>
+          <p class="fine-print">Demo account data is saved in a local file on this computer.</p>
+        </form>
+        <form id="login-form" class="auth-form" hidden>
+          <h2>Welcome back.</h2>
+          <p class="muted">Pick up right where you left off.</p>
+          <label for="login-email">Email address</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          <button class="button button-primary button-full" type="submit">Log in <span aria-hidden="true">→</span></button>
+        </form>
+      </div>
+    </section>
+
+    <section id="page-plan" class="page content-page" hidden>
+      <div class="page-heading">
+        <p class="eyebrow">Your trip, your rhythm</p>
+        <h1>Where are we headed?</h1>
+        <p class="lede">A few details help us find places you’ll actually want to go.</p>
+      </div>
+      <form id="trip-form" class="planner-layout">
+        <div class="planner-main card-surface">
+          <div class="form-section">
+            <span class="step-number">01</span>
+            <div class="form-section-body">
+              <h2>Choose your California stop</h2>
+              <label class="visually-hidden" for="trip-city">City or destination</label>
+              <select id="trip-city" name="city" required><option value="">Loading destinations…</option></select>
+              <p class="field-note">Choose from destinations represented in the places list.</p>
+            </div>
+          </div>
+          <div class="form-section">
+            <span class="step-number">02</span>
+            <div class="form-section-body">
+              <h2>When are you going?</h2>
+              <div class="date-grid">
+                <div><label for="trip-start">Arrival</label><input id="trip-start" name="start" type="date" required></div>
+                <div><label for="trip-end">Leaving</label><input id="trip-end" name="end" type="date" required></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-section interests-section">
+            <span class="step-number">03</span>
+            <div class="form-section-body">
+              <h2>What sounds like a good day?</h2>
+              <p class="field-note">Pick as many as you like. We’ll match places to your interests.</p>
+              <div id="interest-options" class="interest-options" aria-live="polite"></div>
+              <p id="interest-empty" class="empty-note" hidden>No categories were found in the places data.</p>
+            </div>
+          </div>
+          <div class="planner-submit">
+            <p class="fine-print">You can change your plan any time.</p>
+            <button class="button button-primary" type="submit">Find my places <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+        <aside class="planner-aside">
+          <div class="aside-note"><span class="aside-icon">✳</span><h3>Made for your kind of California</h3><p>From a slow morning in a museum to a golden-hour trail, we’ll find a few good places to start.</p></div>
+          <div id="trip-share-panel" class="share-panel" hidden>
+            <p class="eyebrow">Bring your people</p>
+            <h3>Take this trip together</h3>
+            <p id="share-description">Create a private invite link. Friends who join get this destination, dates, and interests.</p>
+            <button id="create-share-button" class="button button-primary button-full" type="button">Create invite link</button>
+            <div id="share-link-row" class="share-link-row" hidden>
+              <input id="share-link" type="url" readonly aria-label="Trip invite link">
+              <button id="copy-share-link" class="button button-outline" type="button">Copy</button>
+            </div>
+            <p id="share-member-count" class="fine-print" hidden></p>
+          </div>
+          <div class="aside-footnote">Curated from your California places list.</div>
+        </aside>
+      </form>
+    </section>
+
+    <section id="page-recommendations" class="page content-page" hidden>
+      <section class="recommendation-chat card-surface" aria-labelledby="chat-heading">
+        <p class="eyebrow">Make it yours</p>
+        <h2 id="chat-heading">Refine your recommendations</h2>
+        <p class="chat-description">Tell us what you’d like to change. This chat is ready for your model connection; it doesn’t change recommendations yet.</p>
+        <div id="chat-messages" class="chat-messages" aria-live="polite" aria-label="Chat messages">
+          <p class="chat-placeholder">For example: “More outdoor activities” or “Find something near the beach.”</p>
+        </div>
+        <form id="recommendation-chat-form" class="chat-form">
+          <label class="visually-hidden" for="chat-input">Your message</label>
+          <input id="chat-input" name="message" type="text" maxlength="500" placeholder="Tell us what you’re looking for…" autocomplete="off" required>
+          <button class="button button-primary" type="submit">Send</button>
+        </form>
+      </section>
+      <div class="page-heading recommendations-heading">
+        <div><p class="eyebrow">A few good places</p><h1>Your California shortlist</h1><p id="recommendation-summary" class="lede"></p></div>
+        <button class="button button-outline" data-page="plan">Edit my plan</button>
+      </div>
+      <p id="recommendation-notice" class="notice" hidden></p>
+      <div id="recommendation-grid" class="recommendation-grid"></div>
+      <div id="recommendation-empty" class="empty-state card-surface" hidden>
+        <span class="empty-symbol">✳</span><h2>Let’s widen the search.</h2><p>We couldn’t find more matches for this combination. Try a nearby destination or a couple of different interests.</p>
+        <button class="button button-primary" data-page="plan">Change my preferences</button>
+      </div>
+      <div class="page-bottom-action"><button class="text-button" data-page="saved">See saved places and trips →</button></div>
+    </section>
+
+    <section id="page-saved" class="page content-page" hidden>
+      <div class="page-heading">
+        <p class="eyebrow">Your little collection</p>
+        <h1>Saved places &amp; trips</h1>
+        <p class="lede">The places you liked are gathered here, ready when you are.</p>
+      </div>
+      <div id="saved-content"></div>
+      <div class="page-bottom-action"><button class="button button-primary" data-page="plan">Plan another trip <span aria-hidden="true">→</span></button></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>K Perfect Days</span><span>Find your California kind of day.</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

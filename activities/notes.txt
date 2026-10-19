@@ -1,0 +1,4 @@
+sign up > plan trip (booking) > link to share with group > interactive bot / rating output > finalize top 5
+
+
+"restaurant_dining, cooking_experience,live_music, sightseeing, running, water_sports, walking, nightlife, hiking, photography, zoo, shopping, art gallary/museum, spa/beauty, hotel"
