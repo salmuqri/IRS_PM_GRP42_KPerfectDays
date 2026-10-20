@@ -192,15 +192,34 @@ function matchingPlaces(trip, includeSeen = false) {
   return { places: ranked.map((entry) => entry.place), usedFallback: cityMatches.length === 0 };
 }
 
-function createTrip(event) {
+async function createTrip(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+
   const interests = form.getAll("interest");
   const city = form.get("city");
   const start = form.get("start");
   const end = form.get("end");
+
   if (!interests.length) { showToast("Choose at least one interest to get recommendations."); return; }
   if (end < start) { showToast("Your leaving date needs to be after your arrival date."); return; }
+  
+  // -----------------------------------------
+    // Save onboarding activities to Neo4j
+    // -----------------------------------------
+
+    try {
+        await postJSON(
+            "/api/activities",
+            {
+                activities: interests
+            }
+        );
+    } catch (error) {
+        showToast(error.message);
+        return;
+    }
+  
   currentTrip = {
     id: makeTripId(), city, start, end, interests,
     likedPlaceIds: [], dislikedPlaceIds: [], shownPlaceIds: [], visiblePlaceIds: [],
