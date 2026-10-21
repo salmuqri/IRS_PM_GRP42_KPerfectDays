@@ -192,15 +192,34 @@ function matchingPlaces(trip, includeSeen = false) {
   return { places: ranked.map((entry) => entry.place), usedFallback: cityMatches.length === 0 };
 }
 
-function createTrip(event) {
+async function createTrip(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+
   const interests = form.getAll("interest");
   const city = form.get("city");
   const start = form.get("start");
   const end = form.get("end");
+
   if (!interests.length) { showToast("Choose at least one interest to get recommendations."); return; }
   if (end < start) { showToast("Your leaving date needs to be after your arrival date."); return; }
+  
+  // -----------------------------------------
+    // Save onboarding activities to Neo4j
+    // -----------------------------------------
+
+    try {
+        await postJSON(
+            "/api/activities",
+            {
+                activities: interests
+            }
+        );
+    } catch (error) {
+        showToast(error.message);
+        return;
+    }
+  
   currentTrip = {
     id: makeTripId(), city, start, end, interests,
     likedPlaceIds: [], dislikedPlaceIds: [], shownPlaceIds: [], visiblePlaceIds: [],
@@ -504,28 +523,102 @@ async function submitSharedVote(placeId, liked) {
   }
 }
 
-function likePlace(placeId) {
+async function likePlace(placeId) {
   if (!currentTrip) return;
-  if (currentTrip.sharedTripId) { submitSharedVote(placeId, true); return; }
-  if (!currentTrip.likedPlaceIds.includes(placeId)) currentTrip.likedPlaceIds.push(placeId);
-  saveUserData();
-  showToast("Saved to your trip.");
-  renderRecommendations();
+
+  if (currentTrip.sharedTripId) {
+    submitSharedVote(placeId, true);
+    return;
+  }
+
+  try {
+    const result = await postJSON("/api/interest", {
+      placeId: placeId,
+      feedback: "like"
+    });
+
+    if (!currentTrip.likedPlaceIds.includes(placeId)) {
+      currentTrip.likedPlaceIds.push(placeId);
+    }
+
+    currentTrip.dislikedPlaceIds =
+      (currentTrip.dislikedPlaceIds || [])
+        .filter(id => id !== placeId);
+
+    saveUserData();
+
+    console.log("LIKE RESULT:", result);
+
+    showToast("Saved to your trip.");
+
+    renderRecommendations();
+
+  } catch (error) {
+    console.error(error);
+    showToast(error.message);
+  }
 }
 
-function dislikePlace(placeId) {
+
+async function dislikePlace(placeId) {
   if (!currentTrip) return;
-  if (currentTrip.sharedTripId) { submitSharedVote(placeId, false); return; }
-  currentTrip.dislikedPlaceIds.push(placeId);
-  currentTrip.visiblePlaceIds = currentTrip.visiblePlaceIds.filter((id) => id !== placeId);
-  currentTrip.shownPlaceIds = [...new Set([...(currentTrip.shownPlaceIds || []), placeId])];
-  const replacement = matchingPlaces(currentTrip).places[0];
-  if (replacement) {
-    currentTrip.visiblePlaceIds.push(replacement.id);
-    currentTrip.shownPlaceIds.push(replacement.id);
+
+  if (currentTrip.sharedTripId) {
+    submitSharedVote(placeId, false);
+    return;
   }
-  saveUserData();
-  renderRecommendations();
+
+  try {
+    const result = await postJSON("/api/interest", {
+      placeId: placeId,
+      feedback: "dislike"
+    });
+
+    if (!currentTrip.dislikedPlaceIds.includes(placeId)) {
+      currentTrip.dislikedPlaceIds.push(placeId);
+    }
+
+    currentTrip.likedPlaceIds =
+      (currentTrip.likedPlaceIds || [])
+        .filter(id => id !== placeId);
+
+    currentTrip.visiblePlaceIds =
+      (currentTrip.visiblePlaceIds || [])
+        .filter(id => id !== placeId);
+
+    currentTrip.shownPlaceIds = [
+      ...new Set([
+        ...(currentTrip.shownPlaceIds || []),
+        placeId
+      ])
+    ];
+
+    const replacement =
+      matchingPlaces(currentTrip).places[0];
+
+    if (replacement) {
+      currentTrip.visiblePlaceIds.push(
+        replacement.id
+      );
+
+      currentTrip.shownPlaceIds = [
+        ...new Set([
+          ...currentTrip.shownPlaceIds,
+          replacement.id
+        ])
+      ];
+    }
+
+    saveUserData();
+
+    console.log("DISLIKE RESULT:", result);
+
+    renderRecommendations();
+
+  } catch (error) {
+    console.error(error);
+    showToast(error.message);
+  }
 }
 
 function formatDate(value) {
