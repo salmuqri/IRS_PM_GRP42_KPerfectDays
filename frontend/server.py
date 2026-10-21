@@ -609,7 +609,6 @@ class DaytripHandler(
             "/api/login",
             "/api/activities",
             "/api/interest",
-            "/api/interest/remove",
             "/api/shared-trips",
             "/api/shared-trips/join",
             "/api/shared-trips/vote",
@@ -651,7 +650,7 @@ class DaytripHandler(
         if endpoint in {
             "/api/activities",
             "/api/interest",
-            "/api/interest/remove",
+           
         }:
 
             # ------------------------------------------------
@@ -813,126 +812,78 @@ class DaytripHandler(
 
 
             # ================================================
-            # ADD INTEREST
+            #  LIKE/DISLIKE
             # ================================================
 
             if endpoint == "/api/interest":
 
-                interest = str(
-                    data.get(
-                        "interest",
-                        ""
-                    )
+                place_id = str(
+                    data.get("placeId", "")
                 ).strip()
 
-                if not interest:
+                feedback = str(
+                    data.get("feedback", "")
+                ).strip().lower()
 
+                if not place_id:
                     self.send_json(
                         400,
-                        {
-                            "error":
-                            "Interest is required."
-                        }
+                        {"error": "Place ID is required."}
                     )
+                    return
 
+                if feedback not in {"like", "dislike"}:
+                    self.send_json(
+                        400,
+                        {"error": "Feedback must be like or dislike."}
+                    )
                     return
 
                 try:
+                    updates = user_service.update_preference_from_place(
+                        profile_id=profile_id,
+                        place_id=place_id,
+                        feedback=feedback
+                    )
 
-                    user_service.add_interest(
-                        profile_id,
-                        interest
+                    if not updates:
+                        self.send_json(
+                            404,
+                            {
+                                "error":
+                                "Could not map this place to an activity."
+                            }
+                        )
+                        return
+
+                    persona = user_service.map_persona(
+                        profile_id
                     )
 
                 except Exception as error:
-
                     print(
-                        "Neo4j interest error: "
-                        f"{error}"
+                        f"Neo4j preference error: {error}"
                     )
 
                     self.send_json(
                         500,
                         {
                             "error":
-                            "Could not save interest."
+                            "Could not update preference."
                         }
                     )
-
                     return
 
                 self.send_json(
                     200,
                     {
                         "success": True,
-                        "interest":
-                        interest,
-                        "liked": True
+                        "feedback": feedback,
+                        "placeId": place_id,
+                        "updates": updates,
+                        "persona": persona
                     }
                 )
-
-                return
-
-
-            # ================================================
-            # REMOVE INTEREST
-            # ================================================
-
-            if endpoint == "/api/interest/remove":
-
-                interest = str(
-                    data.get(
-                        "interest",
-                        ""
-                    )
-                ).strip()
-
-                if not interest:
-
-                    self.send_json(
-                        400,
-                        {
-                            "error":
-                            "Interest is required."
-                        }
-                    )
-
-                    return
-
-                try:
-
-                    user_service.remove_interest(
-                        profile_id,
-                        interest
-                    )
-
-                except Exception as error:
-
-                    print(
-                        "Neo4j interest removal "
-                        f"error: {error}"
-                    )
-
-                    self.send_json(
-                        500,
-                        {
-                            "error":
-                            "Could not remove interest."
-                        }
-                    )
-
-                    return
-
-                self.send_json(
-                    200,
-                    {
-                        "success": True,
-                        "interest":
-                        interest,
-                        "liked": False
-                    }
-                )
-
                 return
 
 
