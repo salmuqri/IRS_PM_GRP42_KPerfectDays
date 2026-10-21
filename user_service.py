@@ -615,8 +615,6 @@ class UserService:
     # ========================================================
     # DEBUG / VERIFY USER MODEL
     #
-    # This is optional, but I recommend keeping it while
-    # developing.
     # ========================================================
 
     def get_user_model(
