@@ -1089,6 +1089,11 @@ class DaytripHandler(
                     "owner_email":
                     email,
 
+                    "owner_profile_id":
+                    owner.get(
+                        "profile_id"
+                    ),
+
                     "owner_name":
                     owner.get(
                         "name",
@@ -1296,94 +1301,169 @@ class DaytripHandler(
 
                 return
 
-
             # ================================================
             # JOIN SHARED TRIP
             # ================================================
 
-            token = str(
-                data.get(
-                    "token",
-                    ""
+            if endpoint == "/api/shared-trips/join":
+
+                token = str(
+                    data.get(
+                        "token",
+                        ""
+                    )
+                ).strip()
+
+                try:
+
+                    with DATA_LOCK:
+
+                        trips = (
+                            load_shared_trips()
+                        )
+
+                        trip = next(
+                            (
+                                item
+                                for item
+                                in trips
+                                if item.get(
+                                    "token"
+                                ) == token
+                            ),
+                            None
+                        )
+
+                        # ----------------------------------------
+                        # Add joining user to participants
+                        # ----------------------------------------
+
+                        if (
+                            trip
+                            and email
+                            not in trip.get(
+                                "participants",
+                                []
+                            )
+                        ):
+
+                            trip.setdefault(
+                                "participants",
+                                []
+                            ).append(
+                                email
+                            )
+
+                            save_shared_trips(
+                                trips
+                            )
+
+                except (
+                    OSError,
+                    json.JSONDecodeError
+                ):
+
+                    self.send_json(
+                        500,
+                        {
+                            "error":
+                            "Could not update the shared trip."
+                        }
+                    )
+
+                    return
+
+                # ================================================
+                # CHECK THAT TRIP EXISTS
+                # ================================================
+
+                if not trip:
+
+                    self.send_json(
+                        404,
+                        {
+                            "error":
+                            "This trip invite link is no longer available."
+                        }
+                    )
+
+                    return
+
+                # ================================================
+                # CREATE HAS_FRIEND RELATIONSHIP
+                # ================================================
+
+                original_profile_id = trip.get(
+                    "owner_profile_id"
                 )
-            )
 
-            try:
+                joining_user = next(
+                    (
+                        account
+                        for account
+                        in users
+                        if account.get(
+                            "email"
+                        ) == email
+                    ),
+                    None
+                )
 
-                with DATA_LOCK:
-
-                    trips = (
-                        load_shared_trips()
+                new_profile_id = (
+                    joining_user.get(
+                        "profile_id"
                     )
+                    if joining_user
+                    else None
+                )
 
-                    trip = next(
-                        (
-                            item
-                            for item
-                            in trips
-                            if item.get(
-                                "token"
-                            ) == token
-                        ),
-                        None
-                    )
+                if (
+                    original_profile_id
+                    and new_profile_id
+                    and original_profile_id != new_profile_id
+                ):
 
-                    if (
-                        trip
-                        and email
-                        not in trip[
-                            "participants"
-                        ]
-                    ):
+                    try:
 
-                        trip[
-                            "participants"
-                        ].append(
-                            email
+                        friend_result = (
+                            user_service.add_friend(
+                                original_profile_id=
+                                original_profile_id,
+
+                                new_profile_id=
+                                new_profile_id
+                            )
                         )
 
-                        save_shared_trips(
-                            trips
+                        print(
+                            "HAS_FRIEND created:",
+                            original_profile_id,
+                            "->",
+                            new_profile_id
                         )
 
-            except (
-                OSError,
-                json.JSONDecodeError
-            ):
+                    except Exception as error:
+
+                        print(
+                            "Neo4j HAS_FRIEND error:",
+                            error
+                        )
+
+                # ================================================
+                # RETURN SHARED TRIP
+                # ================================================
 
                 self.send_json(
-                    500,
+                    200,
                     {
-                        "error":
-                        "Could not update the shared trip."
+                        "trip":
+                        public_trip(
+                            trip
+                        )
                     }
                 )
 
                 return
-
-            if not trip:
-
-                self.send_json(
-                    404,
-                    {
-                        "error":
-                        "This trip invite link is no longer available."
-                    }
-                )
-
-                return
-
-            self.send_json(
-                200,
-                {
-                    "trip":
-                    public_trip(
-                        trip
-                    )
-                }
-            )
-
-            return
 
 
         # ====================================================

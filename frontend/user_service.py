@@ -615,8 +615,6 @@ class UserService:
     # ========================================================
     # DEBUG / VERIFY USER MODEL
     #
-    # This is optional, but I recommend keeping it while
-    # developing.
     # ========================================================
 
     def get_user_model(
@@ -698,6 +696,53 @@ class UserService:
                 else None
             )
 
+            
+    def add_friend(
+        self,
+        original_profile_id,
+        new_profile_id
+    ):
+
+        # Do not create friendship with yourself
+        if original_profile_id == new_profile_id:
+            return None
+
+        query = """
+        MATCH (original:User {
+            profileId: $original_profile_id
+        })
+
+        MATCH (new:User {
+            profileId: $new_profile_id
+        })
+
+        MERGE
+            (original)-[r:HAS_FRIEND]->(new)
+
+        ON CREATE SET
+            r.createdAt = datetime()
+
+        RETURN
+            original.profileId AS originalUser,
+            new.profileId AS friend,
+            type(r) AS relationship
+        """
+
+        with self.driver.session(
+            database=self.database
+        ) as session:
+
+            record = session.run(
+                query,
+                original_profile_id=original_profile_id,
+                new_profile_id=new_profile_id
+            ).single()
+
+            return (
+                dict(record)
+                if record
+                else None
+            )
     # ========================================================
     # CLOSE DRIVER
     # ========================================================
