@@ -188,3 +188,5 @@ input::placeholder { color: #b0b7af; }
   .date-grid { grid-template-columns: 1fr; }
   .site-footer { gap: 12px; flex-direction: column; padding: 20px; }
 }
+
+.planner-live{margin:2rem auto;padding:2rem;max-width:820px}.planner-live textarea{display:block;width:100%;margin:1rem 0;padding:1rem;border:1px solid #bbb;border-radius:8px;font:inherit}.kpd-day{border-top:1px solid #ddd;padding:1rem 0}.kpd-results pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6}.kpd-results details{margin-top:1.5rem}

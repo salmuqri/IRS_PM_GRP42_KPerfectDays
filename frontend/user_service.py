@@ -7,10 +7,6 @@ from neo4j import GraphDatabase
 # NEO4J CONFIG
 # ============================================================
 
-os.environ["NEO4J_URI"] = "bolt+ssc://dfe7760e.databases.neo4j.io"
-os.environ["NEO4J_USERNAME"] = "neo4j"
-os.environ["NEO4J_PASSWORD"] = "Eh7KZ0gZA08LvwJqHgnWiAgS4vJPSRRWd5Jzzq1KPH0"
-os.environ["NEO4J_DATABASE"] = "neo4j"
 
 
 class UserService:

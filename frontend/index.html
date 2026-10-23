@@ -123,6 +123,15 @@
           <div class="aside-footnote">Curated from your California places list.</div>
         </aside>
       </form>
+      <section class="planner-live card-surface" id="kpd-planner-panel" hidden>
+  <p class="eyebrow">Group itinerary</p><h2>Plan your perfect days</h2>
+  <p class="field-note">Describe the destinations, dates, people and anything you want to include or avoid.</p>
+  <label for="kpd-trip-prompt">Trip request</label>
+  <textarea id="kpd-trip-prompt" rows="5" placeholder="Plan four nights in Los Angeles next month. We want museums, beaches and food, but no theme parks."></textarea>
+  <button class="button button-primary" type="button" id="kpd-generate">Generate itinerary</button>
+  <p id="kpd-status" aria-live="polite"></p>
+  <div id="kpd-result" class="kpd-results"></div>
+</section>
     </section>
 
     <section id="page-recommendations" class="page content-page" hidden>

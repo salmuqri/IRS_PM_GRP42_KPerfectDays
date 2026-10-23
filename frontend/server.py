@@ -20,6 +20,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from user_service import UserService
+from planner_jobs import start_job, get_job
 
 
 # ============================================================
@@ -367,6 +368,9 @@ class DaytripHandler(
         # Prevent direct access to local JSON files
         # ----------------------------------------------------
 
+        if requested_path.startswith(('/frontend/planner_results/', '/frontend/__pycache__/', '/frontend/.env')) or requested_path in ('/users.json','/test.py','/.env','/frontend/.env','/frontend/.env.example'):
+            self.send_error(404)
+            return
         if requested_path in {
             "/frontend/users.json",
             "/frontend/users.json.tmp",
@@ -374,6 +378,18 @@ class DaytripHandler(
             "/frontend/shared_trips.json.tmp",
         }:
             self.send_error(404)
+            return
+
+        if requested_path.startswith('/api/itineraries/'):
+            email = self.authenticated_email()
+            if not email:
+                self.send_json(401, {'error': 'Please log in.'})
+                return
+            job = get_job(requested_path.split('/')[-1], email)
+            if not job:
+                self.send_json(404, {'error': 'Unknown itinerary job.'})
+                return
+            self.send_json(200, job)
             return
 
         # ----------------------------------------------------
@@ -605,6 +621,7 @@ class DaytripHandler(
         # ----------------------------------------------------
 
         if endpoint not in {
+            "/api/itineraries",
             "/api/signup",
             "/api/login",
             "/api/activities",
@@ -642,6 +659,37 @@ class DaytripHandler(
 
             return
 
+
+        if endpoint == '/api/itineraries':
+            email = self.authenticated_email()
+            if not email:
+                self.send_json(401, {'error':'Please log in.'})
+                return
+            users = load_users()
+            account = next((x for x in users if x.get('email') == email), None)
+            if not account or not account.get('profile_id'):
+                self.send_json(400, {'error':'Account is missing a KG profile.'})
+                return
+            prompt = str(data.get('prompt') or '').strip()
+            if not 20 <= len(prompt) <= 6000:
+                self.send_json(400, {'error':'Describe your trip in 20–6000 characters.'})
+                return
+            ids = [account['profile_id']]
+            token = str(data.get('sharedTripId') or '').strip()
+            if token:
+                shared = next((t for t in load_shared_trips() if t.get('token') == token
+                              and email in t.get('participants', [])), None)
+                if not shared:
+                    self.send_json(403, {'error':'You are not in this shared trip.'})
+                    return
+                members = set(shared.get('participants', []))
+                for user in users:
+                    if user.get('email') in members and user.get('profile_id'):
+                        ids.append(user['profile_id'])
+            ids = list(dict.fromkeys(ids))
+            job_id = start_job(prompt, ids, email)
+            self.send_json(202, {'job_id':job_id, 'status':'running', 'profiles':ids})
+            return
 
         # ====================================================
         # USER PREFERENCES
