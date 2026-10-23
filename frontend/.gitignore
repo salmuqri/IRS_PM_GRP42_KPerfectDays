@@ -1,4 +1,7 @@
 users.json
-users.json.tmp
 shared_trips.json
-shared_trips.json.tmp
+planner_results/
+kpd_runs/
+.env
+__pycache__/
+*.pyc

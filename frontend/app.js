@@ -143,6 +143,7 @@ function setAuthMode(mode) {
 
 function showPage(page) {
   const signedIn = Boolean(currentUser);
+  document.querySelector("#kpd-planner-panel").hidden = !signedIn;
   if (page !== "auth" && !signedIn) page = "auth";
   $$(".page").forEach((section) => { section.hidden = section.id !== `page-${page}`; });
   $("#main-nav").hidden = !signedIn;
@@ -192,15 +193,34 @@ function matchingPlaces(trip, includeSeen = false) {
   return { places: ranked.map((entry) => entry.place), usedFallback: cityMatches.length === 0 };
 }
 
-function createTrip(event) {
+async function createTrip(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+
   const interests = form.getAll("interest");
   const city = form.get("city");
   const start = form.get("start");
   const end = form.get("end");
+
   if (!interests.length) { showToast("Choose at least one interest to get recommendations."); return; }
   if (end < start) { showToast("Your leaving date needs to be after your arrival date."); return; }
+  
+  // -----------------------------------------
+    // Save onboarding activities to Neo4j
+    // -----------------------------------------
+
+    try {
+        await postJSON(
+            "/api/activities",
+            {
+                activities: interests
+            }
+        );
+    } catch (error) {
+        showToast(error.message);
+        return;
+    }
+  
   currentTrip = {
     id: makeTripId(), city, start, end, interests,
     likedPlaceIds: [], dislikedPlaceIds: [], shownPlaceIds: [], visiblePlaceIds: [],
@@ -504,28 +524,102 @@ async function submitSharedVote(placeId, liked) {
   }
 }
 
-function likePlace(placeId) {
+async function likePlace(placeId) {
   if (!currentTrip) return;
-  if (currentTrip.sharedTripId) { submitSharedVote(placeId, true); return; }
-  if (!currentTrip.likedPlaceIds.includes(placeId)) currentTrip.likedPlaceIds.push(placeId);
-  saveUserData();
-  showToast("Saved to your trip.");
-  renderRecommendations();
+
+  if (currentTrip.sharedTripId) {
+    submitSharedVote(placeId, true);
+    return;
+  }
+
+  try {
+    const result = await postJSON("/api/interest", {
+      placeId: placeId,
+      feedback: "like"
+    });
+
+    if (!currentTrip.likedPlaceIds.includes(placeId)) {
+      currentTrip.likedPlaceIds.push(placeId);
+    }
+
+    currentTrip.dislikedPlaceIds =
+      (currentTrip.dislikedPlaceIds || [])
+        .filter(id => id !== placeId);
+
+    saveUserData();
+
+    console.log("LIKE RESULT:", result);
+
+    showToast("Saved to your trip.");
+
+    renderRecommendations();
+
+  } catch (error) {
+    console.error(error);
+    showToast(error.message);
+  }
 }
 
-function dislikePlace(placeId) {
+
+async function dislikePlace(placeId) {
   if (!currentTrip) return;
-  if (currentTrip.sharedTripId) { submitSharedVote(placeId, false); return; }
-  currentTrip.dislikedPlaceIds.push(placeId);
-  currentTrip.visiblePlaceIds = currentTrip.visiblePlaceIds.filter((id) => id !== placeId);
-  currentTrip.shownPlaceIds = [...new Set([...(currentTrip.shownPlaceIds || []), placeId])];
-  const replacement = matchingPlaces(currentTrip).places[0];
-  if (replacement) {
-    currentTrip.visiblePlaceIds.push(replacement.id);
-    currentTrip.shownPlaceIds.push(replacement.id);
+
+  if (currentTrip.sharedTripId) {
+    submitSharedVote(placeId, false);
+    return;
   }
-  saveUserData();
-  renderRecommendations();
+
+  try {
+    const result = await postJSON("/api/interest", {
+      placeId: placeId,
+      feedback: "dislike"
+    });
+
+    if (!currentTrip.dislikedPlaceIds.includes(placeId)) {
+      currentTrip.dislikedPlaceIds.push(placeId);
+    }
+
+    currentTrip.likedPlaceIds =
+      (currentTrip.likedPlaceIds || [])
+        .filter(id => id !== placeId);
+
+    currentTrip.visiblePlaceIds =
+      (currentTrip.visiblePlaceIds || [])
+        .filter(id => id !== placeId);
+
+    currentTrip.shownPlaceIds = [
+      ...new Set([
+        ...(currentTrip.shownPlaceIds || []),
+        placeId
+      ])
+    ];
+
+    const replacement =
+      matchingPlaces(currentTrip).places[0];
+
+    if (replacement) {
+      currentTrip.visiblePlaceIds.push(
+        replacement.id
+      );
+
+      currentTrip.shownPlaceIds = [
+        ...new Set([
+          ...currentTrip.shownPlaceIds,
+          replacement.id
+        ])
+      ];
+    }
+
+    saveUserData();
+
+    console.log("DISLIKE RESULT:", result);
+
+    renderRecommendations();
+
+  } catch (error) {
+    console.error(error);
+    showToast(error.message);
+  }
 }
 
 function formatDate(value) {
@@ -696,3 +790,62 @@ async function init() {
 }
 
 init();
+
+
+async function generateKpdItinerary() {
+  const prompt = document.querySelector('#kpd-trip-prompt').value.trim();
+  const status = document.querySelector('#kpd-status');
+  const result = document.querySelector('#kpd-result');
+  if (!prompt) { status.textContent = 'Describe your trip first.'; return; }
+  status.textContent = 'Planning your itinerary…';
+  result.replaceChildren();
+  try {
+    const body = await postJSON('/api/itineraries', {
+      prompt, sharedTripId: currentTrip?.sharedTripId || null
+    });
+    const response = await pollKpdJob(body.job_id);
+    if (response.status !== 'completed') throw new Error(response.error || 'Planner did not finish.');
+    status.textContent = 'Your itinerary is ready.';
+    const slots = Array.isArray(response.slots) ? response.slots :
+      (Array.isArray(response.plan) ? response.plan : []);
+    for (const day of slots) {
+      const section = document.createElement('section');
+      section.className = 'kpd-day';
+      const heading = document.createElement('h3');
+      heading.textContent = `${day.date || ''} · ${day.city || ''}`;
+      section.append(heading);
+      for (const item of (day.activities || day.stops || [])) {
+        const p = document.createElement('p');
+        const time = item.start || item.start_time ||
+          (Number.isFinite(item.start_min) ? `${Math.floor(item.start_min/60)}:${String(item.start_min%60).padStart(2,'0')}` : '');
+        p.textContent = `${time}  ${item.name || item.place_name || 'Experience'}`;
+        section.append(p);
+      }
+      result.append(section);
+    }
+    if (response.itinerary) {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = 'Read the full itinerary';
+      const pre = document.createElement('pre');
+      pre.textContent = response.itinerary;
+      details.append(summary, pre);
+      result.append(details);
+    }
+  } catch (error) { status.textContent = error.message; }
+}
+
+async function pollKpdJob(jobId) {
+  for (let i = 0; i < 240; i++) {
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    const response = await fetch('/api/itineraries/' + encodeURIComponent(jobId), {
+      headers: { Authorization: 'Bearer ' + currentUser.sessionToken }
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'Could not read itinerary job.');
+    if (body.status !== 'running') return body;
+  }
+  throw new Error('The planner is still running; please try again later.');
+}
+
+document.querySelector('#kpd-generate').addEventListener('click', generateKpdItinerary);

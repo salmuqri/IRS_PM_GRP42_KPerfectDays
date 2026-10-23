@@ -1,0 +1,8 @@
+neo4j
+openai
+ortools
+requests
+pydantic
+astral
+opening-hours-py
+ipython
