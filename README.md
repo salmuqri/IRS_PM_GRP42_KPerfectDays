@@ -19,13 +19,13 @@ More than a recommender, **K Perfect Days represents the team’s shared effort 
 
 ---
 
-## SECTION 3 : CREDITS / PROJECT CONTRIBUTION
+## SECTION 3 : PROJECT CONTRIBUTION
 
-| Official Full Name  | Student ID  | Work Items (Who Did What) | Email (Optional) |
-| :------------ |:---------------:| :-----| :-----|
-| Nadia Alolyani | A1234567A | xxxxxxxxxx yyyyyyyyyy zzzzzzzzzz| A1234567A@nus.edu.sg |
-| Sarah | A1234567A | xxxxxxxxxx yyyyyyyyyy zzzzzzzzzz| A1234567A@nus.edu.sg |
-| Abdullah | A1234567A | xxxxxxxxxx yyyyyyyyyy zzzzzzzzzz| A1234567A@nus.edu.sg |
+| Official Full Name  | Student ID  | Email
+| :------------ |:---------------:| :-----|
+| Nadia Alolyani | A0354462A | nalolyan@u.nus.edu
+| Sarah | A1234567A | @u.nus.edu
+| Abdullah | A1234567A | @u.nus.edu
 
 ---
 
