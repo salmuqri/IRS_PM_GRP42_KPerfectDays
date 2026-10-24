@@ -22,6 +22,8 @@ from urllib.parse import unquote, urlparse
 from user_service import UserService
 from planner_jobs import start_job, get_job
 
+from dotenv import load_dotenv
+
 
 # ============================================================
 # CONFIGURATION
@@ -32,6 +34,7 @@ PROJECT_ROOT = FRONTEND_DIR.parent
 
 USERS_FILE = FRONTEND_DIR / "users.json"
 SHARED_TRIPS_FILE = FRONTEND_DIR / "shared_trips.json"
+load_dotenv(FRONTEND_DIR / ".env")
 
 PBKDF2_ITERATIONS = 310_000
 MAX_BODY_BYTES = 32_000

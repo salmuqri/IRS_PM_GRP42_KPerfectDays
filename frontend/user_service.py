@@ -8,7 +8,6 @@ from neo4j import GraphDatabase
 # ============================================================
 
 
-
 class UserService:
 
     # ========================================================
@@ -17,9 +16,11 @@ class UserService:
 
     def __init__(self):
 
-        self.uri = os.environ["NEO4J_URI"]
+        self.uri = os.environ["NEO4J_USER_URI"]
         self.username = os.environ["NEO4J_USERNAME"]
         self.password = os.environ["NEO4J_PASSWORD"]
+        self.database = os.environ.get("NEO4J_DATABASE", "neo4j")
+
 
         self.database = os.environ.get(
             "NEO4J_DATABASE",
