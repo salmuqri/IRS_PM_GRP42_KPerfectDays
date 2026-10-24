@@ -25,7 +25,7 @@ More than a recommender, **K Perfect Days represents the team’s shared effort 
 | :------------ |:---------------:| :-----|
 | Nadia Alolyani | A0354462A | nalolyan@u.nus.edu
 | Sarah | A1234567A | @u.nus.edu
-| Abdullah | A1234567A | @u.nus.edu
+| Abdullah Alhussaini | A0352097Y | Abdullah.Alhussaini@u.nus.edu
 
 ---
 
