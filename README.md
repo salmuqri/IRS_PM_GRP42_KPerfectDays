@@ -75,7 +75,7 @@ GEOAPIFY_API_KEY=OPTIONAL_KEY
 
 ### [ 2 ] Start and use the system
 
-### Install additional necessary libraries. This application works in python 2 only.
+### Install additional necessary libraries. 
 
 1. Run `python scripts/server.py` from the repository root.
 2. Open http://127.0.0.1:8000/frontend/ in a browser.
@@ -112,7 +112,5 @@ GEOAPIFY_API_KEY=OPTIONAL_KEY
 
 `Refer to Github Folder: Miscellaneous`
 
-### HDB_BTO_SURVEY.xlsx
-* Results of survey
-* Insights derived, which were subsequently used in our system
+
 
