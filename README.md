@@ -2,7 +2,7 @@
 ## SECTION 1 : K-Perfect Days
 ## Group Travel Itinerary Planner - Recommender System
 
-<img src="SystemCode/clips/static/hdb-bto.png"
+<img src="Video/K_Perfect_Days_LandingPage.png"
      style="float: left; margin-right: 0px;" />
 
 ---
