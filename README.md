@@ -45,24 +45,23 @@ More reference video presentations [here](https://telescopeuser.wordpress.com/20
 ### [ 1 ] Requirements and configuration
 
 Use Python 3.11 or 3.12 and a Neo4j database populated with the appropriate user, persona and place graph. The planner also needs an OpenAI API key and an openrouteservice key. Geoapify is optional; Open-Meteo does not require a personal key for the tested usage. API accounts may incur charges.
+
 From the extracted repository root, create a virtual environment and install the listed dependencies:
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r frontend/requirements.txt
-python -m pip install python-dotenv
-The current repository imports python-dotenv in server.py, but does not list it in frontend/requirements.txt, so install it separately as shown. On Windows, activate the environment using .venv\Scripts\activate.
+
+> python3 -m venv .venv
+> source .venv/bin/activate
+> python -m pip install -r scripts/requirements.txt
+
+
 Create frontend/.env using your own credentials and the following variable names. Never commit real keys or passwords to GitHub:
 NEO4J_URI=neo4j+s://YOUR_AURA_HOST
-NEO4J_USER_URI=neo4j+s://YOUR_AURA_HOST
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=YOUR_PASSWORD
 NEO4J_DATABASE=neo4j
 OPENAI_API_KEY=YOUR_OPENAI_KEY
 ORS_API_KEY=YOUR_ORS_KEY
 GEOAPIFY_API_KEY=OPTIONAL_KEY
-The user service reads NEO4J_USER_URI, while the itinerary engine reads NEO4J_URI. For a single Neo4j instance, these usually point to the same database.
 
-> **Go to URL using web browser** http://0.0.0.0:5000 or http://127.0.0.1:5000
 
 ### [ 2 ] Start and use the system
 
