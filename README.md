@@ -56,13 +56,21 @@ From the extracted repository root, create a virtual environment and install the
 
 
 Create frontend/.env using your own credentials and the following variable names. Never commit real keys or passwords to GitHub:
+
 NEO4J_URI=neo4j+s://YOUR_AURA_HOST
+
 NEO4J_USERNAME=neo4j
+
 NEO4J_PASSWORD=YOUR_PASSWORD
+
 NEO4J_DATABASE=neo4j
+
 OPENAI_API_KEY=YOUR_OPENAI_KEY
+
 ORS_API_KEY=YOUR_ORS_KEY
+
 GEOAPIFY_API_KEY=OPTIONAL_KEY
+
 
 
 ### [ 2 ] Start and use the system
