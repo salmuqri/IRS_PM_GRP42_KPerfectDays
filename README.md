@@ -52,7 +52,7 @@ From the extracted repository root, create a virtual environment and install the
 > python -m pip install -r scripts/requirements.txt
 
 
-Create frontend/.env using your own credentials and the following variable names. Never commit real keys or passwords to GitHub:
+Create scripts/.env using your own credentials and the following variable names. Never commit real keys or passwords to GitHub:
 
 NEO4J_URI=neo4j+s://YOUR_AURA_HOST
 
