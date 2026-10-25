@@ -40,7 +40,7 @@ More reference video presentations [here](https://telescopeuser.wordpress.com/20
 
 ## SECTION 5 : USER GUIDE
 
-`Refer to appendix <Installation & User Guide> in project report at Github Folder: Report`
+`Refer to appendix <Installation & User Guide> in project report at Github Folder: ProjectReport`
 
 ### [ 1 ] Requirements and configuration
 
