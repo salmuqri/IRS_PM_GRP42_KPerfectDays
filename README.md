@@ -75,7 +75,7 @@ GEOAPIFY_API_KEY=OPTIONAL_KEY
 ### Install additional necessary libraries. 
 
 1. Run `python scripts/server.py` from the repository root.
-2. Open http://127.0.0.1:8000/frontend/ in a browser.
+2. Open http://127.0.0.1:8000/scrpts/ in a browser.
 3. Sign up or log in, choose activities, and explore the Discover recommendations.
 4. Optionally create a shared trip, invite other users, and collect votes.
 5. In Plan a trip, type a complete request with city, travel dates or number of nights, preferences and hard exclusions.
