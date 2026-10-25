@@ -48,9 +48,9 @@ Use Python 3.11 or 3.12 and a Neo4j database populated with the appropriate user
 
 From the extracted repository root, create a virtual environment and install the listed dependencies:
 
-> python3 -m venv .venv
-> source .venv/bin/activate
-> python -m pip install -r scripts/requirements.txt
+-> python3 -m venv .venv
+-> source .venv/bin/activate
+-> python -m pip install -r scripts/requirements.txt
 
 
 Create frontend/.env using your own credentials and the following variable names. Never commit real keys or passwords to GitHub:
