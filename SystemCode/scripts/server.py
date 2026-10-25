@@ -22,7 +22,7 @@ from urllib.parse import unquote, urlparse
 from user_service import SIGNUP_INTEREST_MAP, UserService
 from planner_jobs import start_job, get_job, claim_shared_publication
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 
 # ============================================================
@@ -34,7 +34,7 @@ PROJECT_ROOT = scripts_DIR.parent
 
 USERS_FILE = scripts_DIR / "users.json"
 SHARED_TRIPS_FILE = scripts_DIR / "shared_trips.json"
-load_dotenv(scripts_DIR / ".env")
+# load_dotenv(scripts_DIR / ".env")
 
 PBKDF2_ITERATIONS = 310_000
 MAX_BODY_BYTES = 32_000
