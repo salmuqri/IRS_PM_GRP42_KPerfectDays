@@ -2,6 +2,7 @@ neo4j
 openai
 ortools
 requests
+python-dotenv
 pydantic
 astral
 opening-hours-py

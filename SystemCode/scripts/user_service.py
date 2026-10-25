@@ -3,6 +3,25 @@
 import os
 from neo4j import GraphDatabase
 
+
+# Signup category IDs -> existing Neo4j Activity value and optional Interest
+# concepts. These values were checked against the configured graph vocabulary.
+SIGNUP_INTEREST_MAP = {
+    "restaurant_dining": ("restaurant_dining", ("food",)),
+    "cooking_experience": ("cooking_experiences", ("food",)),
+    "live_music": ("live_music", ("music",)),
+    "sightseeing": ("sightseeing", ("culture",)),
+    "running": ("running", ("sports",)),
+    "water_sports": ("water_sports", ("sports",)),
+    "walking": ("walking", ("nature",)),
+    "nightlife": ("nightlife", ("music",)),
+    "hiking": ("hiking", ("nature", "sports")),
+    "photography": ("photography", ("photography",)),
+    "zoo": ("wildlife_viewing", ("wildlife",)),
+    "shopping": ("shopping", ("fashion",)),
+    "art gallary/museum": ("museum_visiting", ("art", "culture")),
+}
+
 # ============================================================
 # NEO4J CONFIG
 # ============================================================
@@ -16,10 +35,10 @@ class UserService:
 
     def __init__(self):
 
-        self.uri = os.environ["NEO4J_USER_URI"]
+        self.uri = os.environ["NEO4J_URI"]
         self.username = os.environ["NEO4J_USERNAME"]
         self.password = os.environ["NEO4J_PASSWORD"]
-        self.database = os.environ.get("NEO4J_DATABASE", "neo4j")
+        # self.database = os.environ.get("NEO4J_DATABASE", "neo4j")
 
 
         self.database = os.environ.get(
@@ -143,6 +162,85 @@ class UserService:
                 if record
                 else None
             )
+
+    def save_signup_preferences(self, profile_id, interests):
+        """Persist signup choices as graph activities and direct interests."""
+        selected = list(dict.fromkeys(
+            value for value in interests if value in SIGNUP_INTEREST_MAP
+        ))
+        activity_values = list(dict.fromkeys(
+            SIGNUP_INTEREST_MAP[value][0] for value in selected
+        ))
+        interest_values = list(dict.fromkeys(
+            concept
+            for value in selected
+            for concept in SIGNUP_INTEREST_MAP[value][1]
+        ))
+
+        def persist(tx):
+            available_activities = tx.run(
+                "MATCH (a:Activity) WHERE a.activity IN $values "
+                "RETURN collect(DISTINCT a.activity) AS values",
+                values=activity_values,
+            ).single()["values"]
+            available_interests = tx.run(
+                "MATCH (i:Interest) WHERE i.interest IN $values "
+                "RETURN collect(DISTINCT i.interest) AS values",
+                values=interest_values,
+            ).single()["values"]
+            missing = (set(activity_values) - set(available_activities)) | (
+                set(interest_values) - set(available_interests)
+            )
+            if missing:
+                raise ValueError(
+                    "Signup preferences are missing from the Neo4j vocabulary: "
+                    + ", ".join(sorted(missing))
+                )
+
+            tx.run(
+                """
+                MATCH (u:User {profileId: $profile_id})
+                OPTIONAL MATCH (u)-[old:HAS_ACTIVITY]->(:Activity)
+                WHERE old.sourceType = 'signup'
+                  AND NOT (endNode(old).activity IN $activity_values)
+                DELETE old
+                WITH u
+                UNWIND $activity_values AS value
+                MATCH (a:Activity {activity: value})
+                MERGE (u)-[r:HAS_ACTIVITY]->(a)
+                ON CREATE SET r.confidence = 1.0,
+                              r.preferenceStrength = 'high',
+                              r.sourceType = 'signup',
+                              r.evidence = 'Selected during signup',
+                              r.behavioralLikes = 0,
+                              r.behavioralDislikes = 0
+                """,
+                profile_id=profile_id,
+                activity_values=activity_values,
+            ).consume()
+            tx.run(
+                """
+                MATCH (u:User {profileId: $profile_id})
+                OPTIONAL MATCH (u)-[old:HAS_INTEREST]->(:Interest)
+                WHERE old.sourceType = 'signup'
+                  AND NOT (endNode(old).interest IN $interest_values)
+                DELETE old
+                WITH u
+                UNWIND $interest_values AS value
+                MATCH (i:Interest {interest: value})
+                MERGE (u)-[r:HAS_INTEREST]->(i)
+                ON CREATE SET r.confidence = 1.0,
+                              r.preferenceStrength = 'high',
+                              r.sourceType = 'signup',
+                              r.evidence = 'Selected during signup'
+                """,
+                profile_id=profile_id,
+                interest_values=interest_values,
+            ).consume()
+            return {"activities": activity_values, "interests": interest_values}
+
+        with self.driver.session(database=self.database) as session:
+            return session.execute_write(persist)
 
     # ========================================================
     # PLACE FEEDBACK
@@ -719,10 +817,17 @@ class UserService:
         ON CREATE SET
             r.createdAt = datetime()
 
+        MERGE
+            (new)-[reverse:HAS_FRIEND]->(original)
+
+        ON CREATE SET
+            reverse.createdAt = datetime()
+
         RETURN
             original.profileId AS originalUser,
             new.profileId AS friend,
-            type(r) AS relationship
+            type(r) AS relationship,
+            type(reverse) AS reverseRelationship
         """
 
         with self.driver.session(

@@ -24,7 +24,7 @@ More than a recommender, **K Perfect Days represents the team’s shared effort 
 | Official Full Name  | Student ID  | Email
 | :------------ |:---------------:| :-----|
 | Nadia Alolyani | A0354462A | nalolyan@u.nus.edu
-| Sarah | A1234567A | @u.nus.edu
+| Sarah Almuqri | A0362910J | almuqri@u.nus.edu
 | Abdullah Alhussaini | A0352097Y | Abdullah.Alhussaini@u.nus.edu
 
 ---

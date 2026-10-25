@@ -1,10 +1,10 @@
-"""Serve Daytrip locally and store demo accounts in frontend/users.json.
+"""Serve Daytrip locally and store demo accounts in scripts/users.json.
 
 Run from the project root:
-    python3 frontend/server.py
+    python3 scripts/server.py
 
 Then open:
-    http://127.0.0.1:8000/frontend/
+    http://127.0.0.1:8000/scripts/
 """
 
 import hashlib
@@ -19,8 +19,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-from user_service import UserService
-from planner_jobs import start_job, get_job
+from user_service import SIGNUP_INTEREST_MAP, UserService
+from planner_jobs import start_job, get_job, claim_shared_publication
 
 from dotenv import load_dotenv
 
@@ -29,12 +29,12 @@ from dotenv import load_dotenv
 # CONFIGURATION
 # ============================================================
 
-FRONTEND_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = FRONTEND_DIR.parent
+scripts_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = scripts_DIR.parent
 
-USERS_FILE = FRONTEND_DIR / "users.json"
-SHARED_TRIPS_FILE = FRONTEND_DIR / "shared_trips.json"
-load_dotenv(FRONTEND_DIR / ".env")
+USERS_FILE = scripts_DIR / "users.json"
+SHARED_TRIPS_FILE = scripts_DIR / "shared_trips.json"
+load_dotenv(scripts_DIR / ".env")
 
 PBKDF2_ITERATIONS = 310_000
 MAX_BODY_BYTES = 32_000
@@ -164,11 +164,22 @@ def public_trip(trip):
         "city": trip["city"],
         "start": trip["start"],
         "end": trip["end"],
-        "interests": trip["interests"],
         "memberCount": len(
             trip["participants"]
         ),
     }
+
+
+def shared_candidate_ids(trip):
+    pools = trip.get("candidate_ids_by_member") or {}
+    if pools:
+        return list(dict.fromkeys(
+            place_id
+            for member_ids in pools.values()
+            for place_id in member_ids
+        ))
+    # Read old invites until each participant contributes their own preference pool.
+    return trip.get("candidate_ids", [])
 
 
 def shared_recommendations(
@@ -195,17 +206,97 @@ def shared_recommendations(
                     + 1
                 )
 
+    pools = trip.get("candidate_ids_by_member") or {}
+    member_candidates = pools.get(email)
+    if member_candidates is None:
+        # Legacy invites used one common list. It remains available until
+        # this participant uploads their own signup-interest candidate pool.
+        member_candidates = trip.get("candidate_ids", [])
+
     return {
-        "candidateIds": trip.get(
-            "candidate_ids",
-            []
-        ),
+        "candidateIds": shared_candidate_ids(trip),
+        "memberCandidateIds": member_candidates,
         "votes": votes.get(
             email,
             {}
         ),
         "likeCounts": like_counts,
     }
+
+
+def itinerary_vote_directives(trip):
+    votes = trip.get("itinerary_votes") or {}
+    threshold = max(1, (len(trip.get("participants", [])) + 1) // 2)
+    excluded = {}
+    included = {}
+    for member_votes in votes.values():
+        member_excluded = set()
+        member_included = set()
+        for place_id, vote in member_votes.items():
+            if not isinstance(vote, dict):
+                continue
+            name = str(vote.get("placeName") or place_id).strip()
+            if vote.get("choice") == "replace":
+                member_excluded.add(name)
+                replacement_id = vote.get("replacementPlaceId")
+                replacement_name = str(vote.get("replacementName") or "").strip()
+                if replacement_id and replacement_name:
+                    member_included.add(replacement_name)
+            elif vote.get("choice") == "like":
+                member_included.add(name)
+        for name in member_excluded:
+            excluded[name] = excluded.get(name, 0) + 1
+        for name in member_included:
+            included[name] = included.get(name, 0) + 1
+    exclude_names = sorted(name for name, count in excluded.items() if count >= threshold)
+    include_names = sorted(name for name, count in included.items() if count >= threshold)
+    directives = []
+    if include_names:
+        directives.append("Places to include: " + ", ".join(include_names) + ".")
+    if exclude_names:
+        directives.append("Places not to include: " + ", ".join(exclude_names) + ".")
+    return directives
+
+
+def public_itinerary_votes(trip, email):
+    all_votes = trip.get("itinerary_votes") or {}
+    counts = {}
+    for member_votes in all_votes.values():
+        for place_id, vote in member_votes.items():
+            if not isinstance(vote, dict):
+                continue
+            entry = counts.setdefault(place_id, {"likes": 0, "replacements": 0})
+            entry["likes" if vote.get("choice") == "like" else "replacements"] += 1
+    return {"mine": all_votes.get(email, {}), "counts": counts}
+
+
+def group_member_context(trip, users):
+    members = []
+    for email in trip.get("participants", []):
+        account = next((user for user in users if user.get("email") == email), None)
+        if not account:
+            continue
+        members.append({
+            "interests": account.get("interests", []) if isinstance(account.get("interests"), list) else [],
+        })
+    return members
+
+
+def save_shared_itinerary(token, result, base_prompt=""):
+    with DATA_LOCK:
+        trips = load_shared_trips()
+        trip = next((item for item in trips if item.get("token") == token), None)
+        if not trip:
+            return
+        previous = trip.get("latest_itinerary") or {}
+        trip["latest_itinerary"] = {
+            "version": int(previous.get("version", 0)) + 1,
+            "basePrompt": base_prompt,
+            "plan": result.get("plan", []),
+            "slots": result.get("slots", []),
+            "itinerary": result.get("itinerary", ""),
+        }
+        save_shared_trips(trips)
 
 
 # ============================================================
@@ -371,14 +462,14 @@ class DaytripHandler(
         # Prevent direct access to local JSON files
         # ----------------------------------------------------
 
-        if requested_path.startswith(('/frontend/planner_results/', '/frontend/__pycache__/', '/frontend/.env')) or requested_path in ('/users.json','/test.py','/.env','/frontend/.env','/frontend/.env.example'):
+        if requested_path.startswith(('/scripts/planner_results/', '/scripts/__pycache__/', '/scripts/.env')) or requested_path in ('/users.json','/test.py','/.env','/scripts/.env','/scripts/.env.example'):
             self.send_error(404)
             return
         if requested_path in {
-            "/frontend/users.json",
-            "/frontend/users.json.tmp",
-            "/frontend/shared_trips.json",
-            "/frontend/shared_trips.json.tmp",
+            "/scripts/users.json",
+            "/scripts/users.json.tmp",
+            "/scripts/shared_trips.json",
+            "/scripts/shared_trips.json.tmp",
         }:
             self.send_error(404)
             return
@@ -392,6 +483,10 @@ class DaytripHandler(
             if not job:
                 self.send_json(404, {'error': 'Unknown itinerary job.'})
                 return
+            publication = claim_shared_publication(job['job_id'], email) if job.get('status') == 'completed' else None
+            if publication:
+                save_shared_itinerary(publication['shared_trip_id'], job,
+                                       publication.get('shared_base_prompt', ''))
             self.send_json(200, job)
             return
 
@@ -449,6 +544,8 @@ class DaytripHandler(
                         user["name"],
                         "email":
                         user["email"],
+                        "interests":
+                        user.get("interests", []),
                     }
                 }
             )
@@ -470,19 +567,9 @@ class DaytripHandler(
                 )
             )
 
-            is_recommendations = (
-                suffix.endswith(
-                    "/recommendations"
-                )
-            )
-
-            token = (
-                suffix.removesuffix(
-                    "/recommendations"
-                )
-                if is_recommendations
-                else suffix
-            )
+            suffix_type = next((name for name in ("recommendations", "state", "itinerary")
+                                if suffix.endswith("/" + name)), "")
+            token = suffix.removesuffix("/" + suffix_type) if suffix_type else suffix
 
             if not re.fullmatch(
                 r"[A-Za-z0-9_-]{20,80}",
@@ -536,7 +623,7 @@ class DaytripHandler(
                 )
                 return
 
-            if is_recommendations:
+            if suffix_type:
 
                 email = (
                     self.authenticated_email()
@@ -559,16 +646,24 @@ class DaytripHandler(
                     )
                     return
 
-                self.send_json(
-                    200,
-                    {
-                        "recommendations":
-                        shared_recommendations(
-                            trip,
-                            email
-                        )
+                if suffix_type == "recommendations":
+                    payload = {"recommendations": shared_recommendations(trip, email)}
+                elif suffix_type == "state":
+                    users = load_users()
+                    payload = {
+                        "trip": public_trip(trip),
+                        "members": group_member_context(trip, users),
+                        "votes": public_itinerary_votes(trip, email),
+                        "voteDirectives": itinerary_vote_directives(trip),
+                        "latestItinerary": trip.get("latest_itinerary"),
                     }
-                )
+                else:
+                    payload = {
+                        "trip": public_trip(trip),
+                        "votes": public_itinerary_votes(trip, email),
+                        "latestItinerary": trip.get("latest_itinerary"),
+                    }
+                self.send_json(200, payload)
 
                 return
 
@@ -598,10 +693,10 @@ class DaytripHandler(
         )
 
         if requested_path in {
-            "/frontend/users.json",
-            "/frontend/users.json.tmp",
-            "/frontend/shared_trips.json",
-            "/frontend/shared_trips.json.tmp",
+            "/scripts/users.json",
+            "/scripts/users.json.tmp",
+            "/scripts/shared_trips.json",
+            "/scripts/shared_trips.json.tmp",
         }:
             self.send_error(404)
             return
@@ -630,8 +725,10 @@ class DaytripHandler(
             "/api/activities",
             "/api/interest",
             "/api/shared-trips",
+            "/api/shared-trips/candidates",
             "/api/shared-trips/join",
             "/api/shared-trips/vote",
+            "/api/shared-trips/itinerary-vote",
         }:
 
             self.send_json(
@@ -678,7 +775,9 @@ class DaytripHandler(
                 self.send_json(400, {'error':'Describe your trip in 20–6000 characters.'})
                 return
             ids = [account['profile_id']]
+            participant_accounts = [account]
             token = str(data.get('sharedTripId') or '').strip()
+            shared = None
             if token:
                 shared = next((t for t in load_shared_trips() if t.get('token') == token
                               and email in t.get('participants', [])), None)
@@ -689,8 +788,34 @@ class DaytripHandler(
                 for user in users:
                     if user.get('email') in members and user.get('profile_id'):
                         ids.append(user['profile_id'])
+                        participant_accounts.append(user)
+                if data.get('refreshGroup') is True:
+                    for directive in itinerary_vote_directives(shared):
+                        listed_names = [name.strip().rstrip(".") for name in directive.split(":", 1)[-1].split(",")]
+                        if not all(name and name.casefold() in prompt.casefold() for name in listed_names):
+                            prompt += "\n\n" + directive
             ids = list(dict.fromkeys(ids))
-            job_id = start_job(prompt, ids, email)
+            profile_interests = {}
+            try:
+                seen_profiles = set()
+                for traveler in participant_accounts:
+                    profile_id = traveler['profile_id']
+                    if profile_id in seen_profiles:
+                        continue
+                    seen_profiles.add(profile_id)
+                    selected = traveler.get('interests', [])
+                    if not isinstance(selected, list):
+                        selected = []
+                    selected = [value for value in selected if isinstance(value, str)]
+                    user_service.save_signup_preferences(profile_id, selected)
+                    user_service.map_persona(profile_id)
+                    profile_interests[profile_id] = selected
+            except Exception as error:
+                print(f"Neo4j signup preference sync failed: {error}")
+                self.send_json(500, {'error':'Could not sync traveler preferences to Neo4j.'})
+                return
+            job_id = start_job(prompt, ids, email, profile_interests, shared_trip_id=token or None,
+                               shared_base_prompt=str(data.get('basePrompt') or '').strip())
             self.send_json(202, {'job_id':job_id, 'status':'running', 'profiles':ids})
             return
 
@@ -963,8 +1088,10 @@ class DaytripHandler(
 
         if endpoint in {
             "/api/shared-trips",
+            "/api/shared-trips/candidates",
             "/api/shared-trips/join",
             "/api/shared-trips/vote",
+            "/api/shared-trips/itinerary-vote",
         }:
 
             email = (
@@ -1035,8 +1162,10 @@ class DaytripHandler(
 
         if endpoint in {
             "/api/shared-trips",
+            "/api/shared-trips/candidates",
             "/api/shared-trips/join",
             "/api/shared-trips/vote",
+            "/api/shared-trips/itinerary-vote",
         }:
 
             if not any(
@@ -1084,18 +1213,6 @@ class DaytripHandler(
                     )
                 )
 
-                interests = (
-                    data.get(
-                        "interests"
-                    )
-                )
-
-                candidate_ids = (
-                    data.get(
-                        "candidateIds"
-                    )
-                )
-
                 owner = next(
                     account
                     for account in users
@@ -1108,23 +1225,13 @@ class DaytripHandler(
                     not city
                     or not start
                     or not end
-                    or not isinstance(
-                        interests,
-                        list
-                    )
-                    or not interests
-                    or not isinstance(
-                        candidate_ids,
-                        list
-                    )
-                    or not candidate_ids
                 ):
 
                     self.send_json(
                         400,
                         {
                             "error":
-                            "The trip needs a destination, dates, and interests."
+                            "The trip needs a destination and dates."
                         }
                     )
 
@@ -1160,21 +1267,11 @@ class DaytripHandler(
                     "end":
                     end,
 
-                    "interests": [
-                        str(value)[:80]
-                        for value
-                        in interests[:20]
-                    ],
-
                     "participants": [
                         email
                     ],
 
-                    "candidate_ids": [
-                        str(value)[:200]
-                        for value
-                        in candidate_ids[:1000]
-                    ],
+                    "candidate_ids_by_member": {},
 
                     "votes": {},
                 }
@@ -1222,6 +1319,75 @@ class DaytripHandler(
 
                 return
 
+
+            # ================================================
+            # ADD A MEMBER'S PERSONALIZED CANDIDATE POOL
+            # ================================================
+
+            if endpoint == "/api/shared-trips/candidates":
+                token = str(data.get("token") or "").strip()
+                raw_ids = data.get("candidateIds", [])
+                if not isinstance(raw_ids, list):
+                    self.send_json(400, {"error": "Candidate IDs must be a list."})
+                    return
+                candidate_ids = list(dict.fromkeys(
+                    str(value)[:200]
+                    for value in raw_ids
+                    if isinstance(value, str) and value.strip()
+                ))[:1000]
+                try:
+                    with DATA_LOCK:
+                        trips = load_shared_trips()
+                        trip = next((item for item in trips if item.get("token") == token), None)
+                        if not trip or email not in trip.get("participants", []):
+                            self.send_json(404, {"error": "This shared trip was not found."})
+                            return
+                        pools = trip.setdefault("candidate_ids_by_member", {})
+                        legacy = trip.pop("candidate_ids", [])
+                        if legacy and trip.get("owner_email"):
+                            pools.setdefault(trip["owner_email"], legacy)
+                        trip.pop("interests", None)
+                        pools[email] = candidate_ids
+                        save_shared_trips(trips)
+                        recommendations = shared_recommendations(trip, email)
+                except (OSError, json.JSONDecodeError):
+                    self.send_json(500, {"error": "Could not save personalized group recommendations."})
+                    return
+                self.send_json(200, {"recommendations": recommendations})
+                return
+
+
+            if endpoint == "/api/shared-trips/itinerary-vote":
+                token = str(data.get("token") or "").strip()
+                place_id = str(data.get("placeId") or "").strip()[:200]
+                place_name = str(data.get("placeName") or place_id).strip()[:300]
+                choice = data.get("choice")
+                if not token or not place_id or choice not in {"like", "replace"}:
+                    self.send_json(400, {"error": "Choose like or replace for an itinerary place."})
+                    return
+                vote = {"choice": choice, "placeName": place_name}
+                if choice == "replace":
+                    replacement_id = str(data.get("replacementPlaceId") or "").strip()[:200]
+                    replacement_name = str(data.get("replacementName") or "").strip()[:300]
+                    if not replacement_id or not replacement_name:
+                        self.send_json(400, {"error": "Choose an available replacement place."})
+                        return
+                    vote.update(replacementPlaceId=replacement_id, replacementName=replacement_name)
+                try:
+                    with DATA_LOCK:
+                        trips = load_shared_trips()
+                        trip = next((item for item in trips if item.get("token") == token), None)
+                        if not trip or email not in trip.get("participants", []):
+                            self.send_json(404, {"error": "This shared trip was not found."})
+                            return
+                        trip.setdefault("itinerary_votes", {}).setdefault(email, {})[place_id] = vote
+                        save_shared_trips(trips)
+                        directives = itinerary_vote_directives(trip)
+                except (OSError, json.JSONDecodeError):
+                    self.send_json(500, {"error": "Could not save your itinerary vote."})
+                    return
+                self.send_json(200, {"voteDirectives": directives})
+                return
 
             # ================================================
             # SHARED TRIP VOTE
@@ -1287,11 +1453,7 @@ class DaytripHandler(
                             return
 
                         if (
-                            place_id
-                            not in trip.get(
-                                "candidate_ids",
-                                []
-                            )
+                            place_id not in shared_candidate_ids(trip)
                             or not isinstance(
                                 liked,
                                 bool
@@ -1468,37 +1630,28 @@ class DaytripHandler(
                     else None
                 )
 
-                if (
-                    original_profile_id
-                    and new_profile_id
-                    and original_profile_id != new_profile_id
-                ):
+                if not original_profile_id or not new_profile_id:
+                    self.send_json(
+                        500,
+                        {"error": "The inviter or invitee has no Neo4j profile."}
+                    )
+                    return
 
+                if original_profile_id != new_profile_id:
                     try:
-
-                        friend_result = (
-                            user_service.add_friend(
-                                original_profile_id=
-                                original_profile_id,
-
-                                new_profile_id=
-                                new_profile_id
-                            )
+                        friend_result = user_service.add_friend(
+                            original_profile_id=original_profile_id,
+                            new_profile_id=new_profile_id,
                         )
-
-                        print(
-                            "HAS_FRIEND created:",
-                            original_profile_id,
-                            "->",
-                            new_profile_id
-                        )
-
+                        if not friend_result:
+                            raise RuntimeError("Neo4j did not create the inviter relationship.")
                     except Exception as error:
-
-                        print(
-                            "Neo4j HAS_FRIEND error:",
-                            error
+                        print(f"Neo4j inviter relationship failed: {error}")
+                        self.send_json(
+                            500,
+                            {"error": "Could not link your Neo4j profile to the inviter."}
                         )
+                        return
 
                 # ================================================
                 # RETURN SHARED TRIP
@@ -1545,6 +1698,23 @@ class DaytripHandler(
                     ""
                 )
             ).strip()
+
+            interests = data.get("interests")
+            if not isinstance(interests, list) or not interests:
+                self.send_json(400, {"error": "Choose at least one interest."})
+                return
+            interests = list(dict.fromkeys(
+                str(value).strip()[:80]
+                for value in interests
+                if isinstance(value, str) and value.strip()
+            ))
+            if not interests:
+                self.send_json(400, {"error": "Choose at least one valid interest."})
+                return
+            unsupported = [value for value in interests if value not in SIGNUP_INTEREST_MAP]
+            if unsupported:
+                self.send_json(400, {"error": "One or more selected interests are not supported."})
+                return
 
             if (
                 len(name) < 1
@@ -1612,6 +1782,9 @@ class DaytripHandler(
                 "email":
                 email,
 
+                "interests":
+                interests,
+
                 "salt":
                 salt,
 
@@ -1668,6 +1841,17 @@ class DaytripHandler(
                     email
                 )
 
+                user_service.save_signup_preferences(
+                    profile_id,
+                    interests
+                )
+
+                persona = user_service.map_persona(
+                    profile_id
+                )
+                if not persona:
+                    raise RuntimeError("No Neo4j persona matched the user's signup interests.")
+
                 print(
                     "Neo4j user created: "
                     f"{profile_id}"
@@ -1675,8 +1859,14 @@ class DaytripHandler(
 
             except Exception as error:
 
+                users = [saved for saved in users if saved.get("email") != email]
+                try:
+                    save_users(users)
+                except OSError:
+                    pass
+
                 print(
-                    "Neo4j user creation failed: "
+                    "Neo4j user/preference creation failed: "
                     f"{error}"
                 )
 
@@ -1684,7 +1874,7 @@ class DaytripHandler(
                     500,
                     {
                         "error":
-                        "Could not create user profile."
+                        "Could not save account preferences to Neo4j."
                     }
                 )
 
@@ -1779,6 +1969,9 @@ class DaytripHandler(
 
                     "email":
                     user["email"],
+
+                    "interests":
+                    user.get("interests", []),
                 },
 
                 "sessionToken":
@@ -1803,7 +1996,7 @@ def main():
 
     print(
         "Daytrip is running at "
-        "http://127.0.0.1:8000/frontend/"
+        "http://127.0.0.1:8000/scripts/"
     )
 
     print(

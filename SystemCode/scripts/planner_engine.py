@@ -22,6 +22,7 @@ from IPython.display import Markdown, display
 
 # One configuration block. All service URLs and integration parameters are here.
 SELF_ID = os.environ['KPD_OWNER_PROFILE_ID']
+IS_SHARED_TRIP = os.environ.get('KPD_IS_SHARED_TRIP', 'false').lower() == 'true'
 TIMEZONE = 'America/Los_Angeles'
 TODAY = datetime.now(ZoneInfo(TIMEZONE)).date()
 PROMPT_MODEL = 'gpt-6-luna'
@@ -297,6 +298,7 @@ if not trip['destinations'] or sum(d['nights'] for d in trip['destinations']) > 
 
 profile_ids = json.loads(os.environ['KPD_PROFILE_IDS'])
 profile_ids = list(dict.fromkeys(profile_ids))
+PROFILE_INTERESTS = json.loads(os.environ.get('KPD_PROFILE_INTERESTS', '{}'))
 
 days = []
 cursor = start_date
@@ -1332,14 +1334,22 @@ if trip['night_owl_recovery']:
             model.add(sum(prev_late)+sum(early)<=1)
 
 # Explicit mandatory requirements are enforced across the WHOLE trip.
+unavailable_mandatory_wishes = []
 for i,w in enumerate(trip['wishes']):
     if not w['mandatory']:continue
     matching=sum(t['matched_wishes'][i]*select[(d,j)]
                  for d,options in day_options.items() for j,t in enumerate(options))
-    count=max(1,w['minimum'])
-    if not any(t['matched_wishes'][i] for opts in day_options.values() for t in opts):
-        raise ValueError(f'Mandatory request {w["theme"]!r} has no feasible daily tour. '
-                         'Check KG coverage or venue/time constraints.')
+    # A requested venue or theme can be absent from every feasible daily tour
+    # (for example, a venue is closed or missing from the place graph). Keep
+    # the rest of the trip usable and report the wish as unmet in the results.
+    possible_count=sum(max((t['matched_wishes'][i] for t in options), default=0)
+                       for options in day_options.values())
+    if possible_count == 0:
+        unavailable_mandatory_wishes.append(dict(w))
+        w['mandatory'] = False
+        w['minimum'] = 0
+        continue
+    count=min(max(1,w['minimum']), possible_count)
     model.add(matching>=count)
 
 # At most one fine-dining night every five days; no adjacent premium dinners.
@@ -1678,7 +1688,7 @@ metrics={
     'official_hours_stops':sum(s['hours_basis'].startswith('official') for s in planned),
     'supplemental_places_selected':[p['name'] for p in by_id.values()
                                     if p['id'] in selected_ids and p.get('data_source')!='Neo4j'],
-    'repair_notes':[], 'unmet_mandatory_requests':[],
+    'repair_notes':[], 'unmet_mandatory_requests':unavailable_mandatory_wishes,
     'assumptions':['ORS static travel times (no live traffic)',
       'city centre is a temporary base where no hotel was supplied',
       'Geoapify community-sourced typical opening hours are not confirmed holiday/future hours',
@@ -1728,12 +1738,17 @@ print('Hours:',metrics['hours_basis'],'Weather:',metrics['weather_basis'])
 if issues:print('Repairs:',issues)
 
 
-public_preferences={
-    uid:{'persona':users[uid]['persona_ids'],
-         'preferred_activities':list(sorted(users[uid]['activities'],
-                                      key=users[uid]['activities'].get,reverse=True))[:5]}
-    for uid in profile_ids
-}
+if IS_SHARED_TRIP:
+    public_preferences=[{'signup_interests':PROFILE_INTERESTS.get(uid, [])}
+                        for uid in profile_ids]
+else:
+    public_preferences={
+        uid:{'persona':users[uid]['persona_ids'],
+             'preferred_activities':list(sorted(users[uid]['activities'],
+                                          key=users[uid]['activities'].get,reverse=True))[:5],
+             'signup_interests':PROFILE_INTERESTS.get(uid, [])}
+        for uid in profile_ids
+    }
 compact_plan=[]
 for d in schedule:
     compact_plan.append({
@@ -1749,10 +1764,11 @@ for d in schedule:
                   'experience':s['category'],'themes':s['themes'],
                   'minutes_from_previous':s['route_in_minutes'],
                   'place_id':s['place_id'],'suitable_for':s['suitable_for'],
-                  'hours_basis':s['hours_basis'],
-                  'data_source':s.get('data_source','Neo4j')} for s in d['activities']]
+                  'hours_basis':s['hours_basis']} for s in d['activities']]
     })
 
+TRAVELER_CONTEXT_LABEL = ('Traveler signup interests:' if IS_SHARED_TRIP else
+                          'Who is traveling (persona-based tastes; these are NOT personal names):')
 FINAL_PROMPT=f'''You are an excellent human travel editor, writing a California itinerary for friends.
 The complete choices, sequence and dates passed the integrated optimizer and route checks.
 Write an enjoyable, useful trip guide with the judgment of a thoughtful local planner.
@@ -1760,7 +1776,7 @@ Write an enjoyable, useful trip guide with the judgment of a thoughtful local pl
 Original travel request:
 {USER_PROMPT}
 
-Who is traveling (persona-based tastes; these are NOT personal names):
+{TRAVELER_CONTEXT_LABEL}
 {json.dumps(public_preferences,ensure_ascii=False)}
 
 Selected real places and their intended schedule:
@@ -1810,16 +1826,15 @@ Writing requirements:
 - Avoid 'Google says', 'algorithm selected', 'this balances utility', etc.
 - Include concrete day-by-day plans at useful times and an engaging short intro.
 '''
-(OUTPUT_DIR/'KPD_FINAL_PROMPT.txt').write_text(FINAL_PROMPT,encoding='utf-8')
+# (OUTPUT_DIR/'KPD_FINAL_PROMPT.txt').write_text(FINAL_PROMPT,encoding='utf-8')
 print('\n========== FINAL OPENAI PROMPT ==========\n')
 print(FINAL_PROMPT)
 # Increased the request timeout to 300 seconds to prevent ReadTimeout errors on long itinerary generation
 answer=client.responses.create(model=ITINERARY_MODEL,input=FINAL_PROMPT,max_output_tokens=10000,timeout=300.0)
 ITINERARY=answer.output_text
-(OUTPUT_DIR/'KPD_ITINERARY.md').write_text(ITINERARY,encoding='utf-8')
+# (OUTPUT_DIR/'KPD_ITINERARY.md').write_text(ITINERARY,encoding='utf-8')
 display(Markdown(ITINERARY))
 import shutil
 archive=shutil.make_archive(f'KPD_{RUN_ID}','zip',OUTPUT_DIR)
 print('Done. Outputs:',OUTPUT_DIR.resolve(),'ZIP:',archive)
 driver.close()
-

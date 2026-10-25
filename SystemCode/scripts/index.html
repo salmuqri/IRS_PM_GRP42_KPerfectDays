@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script src="app.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=group-trip-prompt-v3">
+  <script src="app.js?v=group-trip-weather-prompt-1" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -51,6 +51,26 @@
           <input id="signup-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
           <label for="signup-password">Password</label>
           <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required>
+          <fieldset class="signup-interests">
+            <legend>What do you enjoy?</legend>
+            <p class="field-note">Pick any number. We’ll use these for recommendations on every trip.</p>
+            <p id="interest-selection-status" class="interest-selection-status" aria-live="polite">No interests selected</p>
+            <div id="signup-interest-options" class="interest-options" aria-live="polite">
+              <label class="interest-option"><input type="checkbox" name="interest" value="restaurant_dining"><span>⌂ Restaurant dining</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="cooking_experience"><span>✳ Cooking experiences</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="live_music"><span>♫ Live music</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="sightseeing"><span>◉ Sightseeing</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="running"><span>↗ Running</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="water_sports"><span>≈ Water sports</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="walking"><span>↝ Walking</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="nightlife"><span>☾ Nightlife</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="hiking"><span>△ Hiking</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="photography"><span>▧ Photography</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="zoo"><span>♧ Zoo &amp; wildlife</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="shopping"><span>◇ Shopping</span></label>
+              <label class="interest-option"><input type="checkbox" name="interest" value="art gallary/museum"><span>▤ Art gallery / museum</span></label>
+            </div>
+          </fieldset>
           <button class="button button-primary button-full" type="submit">Create my account <span aria-hidden="true">→</span></button>
           <p class="fine-print">Demo account data is saved in a local file on this computer.</p>
         </form>
@@ -93,72 +113,55 @@
               </div>
             </div>
           </div>
-          <div class="form-section interests-section">
-            <span class="step-number">03</span>
-            <div class="form-section-body">
-              <h2>What sounds like a good day?</h2>
-              <p class="field-note">Pick as many as you like. We’ll match places to your interests.</p>
-              <div id="interest-options" class="interest-options" aria-live="polite"></div>
-              <p id="interest-empty" class="empty-note" hidden>No categories were found in the places data.</p>
+          <fieldset class="group-trip-section">
+            <legend>Is this a group trip?</legend>
+            <label class="group-trip-choice" for="is-group-trip">
+              <input id="is-group-trip" name="isGroupTrip" type="checkbox" value="yes">
+              <span>Yes, I’m planning with other people</span>
+            </label>
+            <p id="group-trip-help" class="field-note" hidden>We’ll create a shareable invite link after you enter your destination and dates.</p>
+            <button id="generate-group-trip" class="button button-primary" type="button" hidden disabled>Generate invite link</button>
+            <div id="group-trip-invite" class="group-trip-invite" hidden>
+              <p id="group-trip-status" class="field-note" aria-live="polite"></p>
+              <div id="share-link-row" class="share-link-row" hidden>
+                <input id="share-link" type="url" readonly aria-label="Trip invite link">
+                <button id="copy-share-link" class="button button-outline" type="button">Copy link</button>
+              </div>
+              <p id="share-member-count" class="fine-print" hidden></p>
+              <button id="view-group-recommendations" class="button button-outline" type="button" hidden>View itinerary</button>
             </div>
-          </div>
+          </fieldset>
           <div class="planner-submit">
-            <p class="fine-print">You can change your plan any time.</p>
-            <button class="button button-primary" type="submit">Find my places <span aria-hidden="true">→</span></button>
+            <p class="fine-print">Recommendations use the interests saved to your account.</p>
+            <button id="trip-submit" class="button button-primary" type="submit">Find my places <span aria-hidden="true">→</span></button>
           </div>
         </div>
         <aside class="planner-aside">
           <div class="aside-note"><span class="aside-icon">✳</span><h3>Made for your kind of California</h3><p>From a slow morning in a museum to a golden-hour trail, we’ll find a few good places to start.</p></div>
-          <div id="trip-share-panel" class="share-panel" hidden>
-            <p class="eyebrow">Bring your people</p>
-            <h3>Take this trip together</h3>
-            <p id="share-description">Create a private invite link. Friends who join get this destination, dates, and interests.</p>
-            <button id="create-share-button" class="button button-primary button-full" type="button">Create invite link</button>
-            <div id="share-link-row" class="share-link-row" hidden>
-              <input id="share-link" type="url" readonly aria-label="Trip invite link">
-              <button id="copy-share-link" class="button button-outline" type="button">Copy</button>
-            </div>
-            <p id="share-member-count" class="fine-print" hidden></p>
-          </div>
           <div class="aside-footnote">Curated from your California places list.</div>
         </aside>
       </form>
-      <section class="planner-live card-surface" id="kpd-planner-panel" hidden>
-  <p class="eyebrow">Group itinerary</p><h2>Plan your perfect days</h2>
-  <p class="field-note">Describe the destinations, dates, people and anything you want to include or avoid.</p>
-  <label for="kpd-trip-prompt">Trip request</label>
-  <textarea id="kpd-trip-prompt" rows="5" placeholder="Plan four nights in Los Angeles next month. We want museums, beaches and food, but no theme parks."></textarea>
-  <button class="button button-primary" type="button" id="kpd-generate">Generate itinerary</button>
-  <p id="kpd-status" aria-live="polite"></p>
-  <div id="kpd-result" class="kpd-results"></div>
-</section>
     </section>
 
     <section id="page-recommendations" class="page content-page" hidden>
-      <section class="recommendation-chat card-surface" aria-labelledby="chat-heading">
-        <p class="eyebrow">Make it yours</p>
-        <h2 id="chat-heading">Refine your recommendations</h2>
-        <p class="chat-description">Tell us what you’d like to change. This chat is ready for your model connection; it doesn’t change recommendations yet.</p>
-        <div id="chat-messages" class="chat-messages" aria-live="polite" aria-label="Chat messages">
-          <p class="chat-placeholder">For example: “More outdoor activities” or “Find something near the beach.”</p>
+      <section class="planner-live card-surface" id="kpd-planner-panel" aria-labelledby="kpd-planner-heading">
+        <p class="eyebrow">Your trip, thoughtfully planned</p>
+        <h2 id="kpd-planner-heading">Your itinerary</h2>
+        <p class="field-note">Your original trip brief stays fixed. Add or revise your requests below any time, then regenerate your itinerary.</p>
+        <label for="kpd-trip-prompt">Original trip brief</label>
+        <textarea id="kpd-trip-prompt" rows="5" placeholder="Your trip details and interests will appear here." readonly></textarea>
+        <label for="kpd-trip-changes">Changes or extra requests</label>
+        <textarea id="kpd-trip-changes" rows="3" placeholder="Add changes here, such as a slower pace, more museums, or a place you want to visit."></textarea>
+        <div class="itinerary-actions">
+          <button class="button button-primary" type="button" id="kpd-generate">Generate itinerary</button>
+          <div id="group-itinerary-controls" class="group-itinerary-controls" hidden>
+            <p id="group-itinerary-count" class="fine-print" aria-live="polite"></p>
+            <button class="button button-outline" type="button" id="kpd-refresh-group">Refresh itinerary with new invitees</button>
+          </div>
         </div>
-        <form id="recommendation-chat-form" class="chat-form">
-          <label class="visually-hidden" for="chat-input">Your message</label>
-          <input id="chat-input" name="message" type="text" maxlength="500" placeholder="Tell us what you’re looking for…" autocomplete="off" required>
-          <button class="button button-primary" type="submit">Send</button>
-        </form>
+        <p id="kpd-status" aria-live="polite"></p>
+        <div id="kpd-result" class="kpd-results"></div>
       </section>
-      <div class="page-heading recommendations-heading">
-        <div><p class="eyebrow">A few good places</p><h1>Your California shortlist</h1><p id="recommendation-summary" class="lede"></p></div>
-        <button class="button button-outline" data-page="plan">Edit my plan</button>
-      </div>
-      <p id="recommendation-notice" class="notice" hidden></p>
-      <div id="recommendation-grid" class="recommendation-grid"></div>
-      <div id="recommendation-empty" class="empty-state card-surface" hidden>
-        <span class="empty-symbol">✳</span><h2>Let’s widen the search.</h2><p>We couldn’t find more matches for this combination. Try a nearby destination or a couple of different interests.</p>
-        <button class="button button-primary" data-page="plan">Change my preferences</button>
-      </div>
-      <div class="page-bottom-action"><button class="text-button" data-page="saved">See saved places and trips →</button></div>
     </section>
 
     <section id="page-saved" class="page content-page" hidden>

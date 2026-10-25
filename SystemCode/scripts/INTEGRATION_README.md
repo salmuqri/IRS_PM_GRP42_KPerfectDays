@@ -3,10 +3,10 @@
 ## What is integrated
 
 - Existing login, signup, shared-trip invitations, Neo4j user/persona relationships, Discover results and group voting are retained.
-- The original 11 planning stages from notebook v7.5.2 are extracted to `frontend/planner_engine.py`. Its solver, KG queries, weather, Geoapify enrichment, ORS routes and final GPT writing remain in place.
-- `frontend/server.py` exposes `POST /api/itineraries` and `GET /api/itineraries/<job_id>` to authenticated users.
-- `frontend/planner_jobs.py` runs the planner in a separate process and stores each run privately under `frontend/planner_results/<job_id>/`.
-- `frontend/index.html`, `app.js` and `styles.css` add a natural-language planner and day-by-day view on the Plan a trip page.
+- The original 11 planning stages from notebook v7.5.2 are extracted to `scripts/planner_engine.py`. Its solver, KG queries, weather, Geoapify enrichment, ORS routes and final GPT writing remain in place.
+- `scripts/server.py` exposes `POST /api/itineraries` and `GET /api/itineraries/<job_id>` to authenticated users.
+- `scripts/planner_jobs.py` runs the planner in a separate process and stores each run privately under `scripts/planner_results/<job_id>/`.
+- `scripts/index.html`, `app.js` and `styles.css` add a natural-language planner and day-by-day view on the Plan a trip page.
 - The real logged-in Neo4j profile becomes the planner owner; members of an existing shared trip are included from authenticated account records. Profile IDs typed in a prompt do not override membership.
 
 ## Installation
@@ -16,7 +16,7 @@ Use Python 3.11 or 3.12. From the repository root:
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r frontend/requirements.txt
+pip install -r scripts/requirements.txt
 ```
 
 Create your own environment variables (do not commit real keys):
@@ -35,10 +35,10 @@ On Windows PowerShell use `$env:VARIABLE_NAME = 'value'` for each key. `GEOAPIFY
 Start the web server from the **repository root**:
 
 ```bash
-python frontend/server.py
+python scripts/server.py
 ```
 
-Open http://127.0.0.1:8000/frontend/. Create or log into a user account. Choose **Plan a trip**, type a complete plain-English request into **Plan your perfect days**, and press **Generate itinerary**. If you want a group result, create a shared-trip invitation, have friends join, then generate from the same trip. The request is handled asynchronously; the browser displays its result on completion.
+Open http://127.0.0.1:8000/scripts/. Create or log into a user account. Choose **Plan a trip**, type a complete plain-English request into **Plan your perfect days**, and press **Generate itinerary**. If you want a group result, create a shared-trip invitation, have friends join, then generate from the same trip. The request is handled asynchronously; the browser displays its result on completion.
 
 Example request:
 
@@ -58,16 +58,16 @@ Returns HTTP 202 and a `job_id`. `GET /api/itineraries/<job_id>` returns `{statu
 
 | File | Change |
 |---|---|
-| `frontend/server.py` | Added authenticated itinerary create/read APIs, member resolution and restricted access to private output files. |
-| `frontend/user_service.py` | Removed hardcoded Neo4j password and connection settings; uses environment variables. |
-| `frontend/app.js` | Added submit/poll/render functions for planner results. Existing Discover and votes unchanged. |
-| `frontend/index.html` | Added free-text planning panel. |
-| `frontend/styles.css` | Added styling for the planner and result cards. |
-| `frontend/.gitignore` | Ignore secrets, private users/trips and output directories. |
-| `frontend/planner_engine.py` | New executable Python extraction of the notebook with browser-supplied inputs and safe runtime credentials. |
-| `frontend/planner_jobs.py` | New lightweight background process manager. |
-| `frontend/requirements.txt` | Dependencies for running the website and extracted planner. |
-| `frontend/.env.example` | Names of required runtime configuration values (not a secret file). |
+| `scripts/server.py` | Added authenticated itinerary create/read APIs, member resolution and restricted access to private output files. |
+| `scripts/user_service.py` | Removed hardcoded Neo4j password and connection settings; uses environment variables. |
+| `scripts/app.js` | Added submit/poll/render functions for planner results. Existing Discover and votes unchanged. |
+| `scripts/index.html` | Added free-text planning panel. |
+| `scripts/styles.css` | Added styling for the planner and result cards. |
+| `scripts/.gitignore` | Ignore secrets, private users/trips and output directories. |
+| `scripts/planner_engine.py` | New executable Python extraction of the notebook with browser-supplied inputs and safe runtime credentials. |
+| `scripts/planner_jobs.py` | New lightweight background process manager. |
+| `scripts/requirements.txt` | Dependencies for running the website and extracted planner. |
+| `scripts/.env.example` | Names of required runtime configuration values (not a secret file). |
 
 ## Test status and limitations
 
@@ -81,7 +81,7 @@ Returns HTTP 202 and a `job_id`. `GET /api/itineraries/<job_id>` returns `{statu
 ## Troubleshooting
 
 - `KeyError: NEO4J_URI`: export environment variables in the same terminal before starting the server.
-- Missing Python module: activate your virtual environment, rerun `pip install -r frontend/requirements.txt`.
-- Planner job fails: the page displays the last relevant lines from `frontend/planner_results/<job_id>/run.log`; review the full private log locally.
+- Missing Python module: activate your virtual environment, rerun `pip install -r scripts/requirements.txt`.
+- Planner job fails: the page displays the last relevant lines from `scripts/planner_results/<job_id>/run.log`; review the full private log locally.
 - Missing profile: ensure you signed up through the website and its Neo4j user service created a `profileId` in the same graph the planner queries.
 - Job takes too long: test a three-night, one-city prompt first; ORS, Geoapify, CP-SAT and the final LLM may take significant time on long itineraries.

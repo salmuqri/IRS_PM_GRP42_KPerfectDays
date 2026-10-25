@@ -4,7 +4,8 @@ Group Name: Group 55
 
 Members Names & IDs:
 Nadia Mohammed A Alolyani - A0354462A
-Abdullah
-Sara
+Abdullah Alhussaini - A0352097Y
+Sarah ALmuqri - A0362910J
 
 Link to Online Project Repo:
+https://github.com/salmuqri/IRS_PM_GRP55_KPerfectDays.git
