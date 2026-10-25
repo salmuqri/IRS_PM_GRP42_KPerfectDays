@@ -77,7 +77,7 @@ GEOAPIFY_API_KEY=OPTIONAL_KEY
 
 ### Install additional necessary libraries. This application works in python 2 only.
 
-1. Run `python frontend/server.py` from the repository root.
+1. Run `python scripts/server.py` from the repository root.
 2. Open http://127.0.0.1:8000/frontend/ in a browser.
 3. Sign up or log in, choose activities, and explore the Discover recommendations.
 4. Optionally create a shared trip, invite other users, and collect votes.
