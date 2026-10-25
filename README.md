@@ -31,7 +31,7 @@ More than a recommender, **K Perfect Days represents the team’s shared effort 
 
 ## SECTION 4 : VIDEO OF SYSTEM DEMO
 
-
+`Refer to Github Folder: Video`
 
 ---
 
