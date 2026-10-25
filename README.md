@@ -40,32 +40,41 @@ More reference video presentations [here](https://telescopeuser.wordpress.com/20
 
 ## SECTION 5 : USER GUIDE
 
-`Refer to appendix <Installation & User Guide> in project report at Github Folder: ProjectReport`
+`Refer to appendix <Installation & User Guide> in project report at Github Folder: Report`
 
-### [ 1 ] To run the system using iss-vm
+### [ 1 ] Requirements and configuration
 
-> download pre-built virtual machine from http://bit.ly/iss-vm
-
-> start iss-vm
-
-> open terminal in iss-vm
-
-> $ git clone https://github.com/telescopeuser/Workshop-Project-Submission-Template.git
-
-> $ source activate iss-env-py2
-
-> (iss-env-py2) $ cd Workshop-Project-Submission-Template/SystemCode/clips
-
-> (iss-env-py2) $ python app.py
+Use Python 3.11 or 3.12 and a Neo4j database populated with the appropriate user, persona and place graph. The planner also needs an OpenAI API key and an openrouteservice key. Geoapify is optional; Open-Meteo does not require a personal key for the tested usage. API accounts may incur charges.
+From the extracted repository root, create a virtual environment and install the listed dependencies:
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r frontend/requirements.txt
+python -m pip install python-dotenv
+The current repository imports python-dotenv in server.py, but does not list it in frontend/requirements.txt, so install it separately as shown. On Windows, activate the environment using .venv\Scripts\activate.
+Create frontend/.env using your own credentials and the following variable names. Never commit real keys or passwords to GitHub:
+NEO4J_URI=neo4j+s://YOUR_AURA_HOST
+NEO4J_USER_URI=neo4j+s://YOUR_AURA_HOST
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=YOUR_PASSWORD
+NEO4J_DATABASE=neo4j
+OPENAI_API_KEY=YOUR_OPENAI_KEY
+ORS_API_KEY=YOUR_ORS_KEY
+GEOAPIFY_API_KEY=OPTIONAL_KEY
+The user service reads NEO4J_USER_URI, while the itinerary engine reads NEO4J_URI. For a single Neo4j instance, these usually point to the same database.
 
 > **Go to URL using web browser** http://0.0.0.0:5000 or http://127.0.0.1:5000
 
-### [ 2 ] To run the system in other/local machine:
+### [ 2 ] Start and use the system
+
 ### Install additional necessary libraries. This application works in python 2 only.
 
-> $ sudo apt-get install python-clips clips build-essential libssl-dev libffi-dev python-dev python-pip
+1. Run `python frontend/server.py` from the repository root.
+2. Open http://127.0.0.1:8000/frontend/ in a browser.
+3. Sign up or log in, choose activities, and explore the Discover recommendations.
+4. Optionally create a shared trip, invite other users, and collect votes.
+5. In Plan a trip, type a complete request with city, travel dates or number of nights, preferences and hard exclusions.
+6. Select Generate itinerary, review the day-by-day result, and check warnings about unverified hours.
 
-> $ pip install pyclips flask flask-socketio eventlet simplejson pandas
 
 ---
 ## SECTION 6 : PROJECT REPORT / PAPER
